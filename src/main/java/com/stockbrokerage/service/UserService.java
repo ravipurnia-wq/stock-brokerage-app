@@ -7,6 +7,8 @@ import com.stockbrokerage.repository.UserRepository;
 import com.stockbrokerage.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -75,11 +77,13 @@ public class UserService implements UserDetailsService {
         return user;
     }
     
+    @Cacheable(value = "userProfiles", key = "#email")
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
     
+    @Cacheable(value = "userProfiles", key = "#id")
     public User findById(String id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));

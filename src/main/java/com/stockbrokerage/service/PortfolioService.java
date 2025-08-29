@@ -11,6 +11,8 @@ import com.stockbrokerage.repository.SymbolRepository;
 import com.stockbrokerage.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +31,13 @@ public class PortfolioService {
     private final SymbolRepository symbolRepository;
     private final MarketDataService marketDataService;
     
+    @Cacheable(value = "portfolioSummary", key = "#userId")
     public PortfolioSummary getPortfolioSummary(String userId) {
         Wallet wallet = getWallet(userId);
         List<Holding> holdings = holdingRepository.findByUserId(userId);
         
         BigDecimal totalInvestedValue = holdings.stream()
-                .map(Holding::getTotalInvestment)
+                .map(Holding::getTotalCost)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         BigDecimal totalCurrentValue = calculateTotalCurrentValue(holdings);
@@ -74,7 +77,7 @@ public class PortfolioService {
                         .symbolId(symbolId)
                         .quantity(0L)
                         .averagePrice(BigDecimal.ZERO)
-                        .totalInvestment(BigDecimal.ZERO)
+                        .totalCost(BigDecimal.ZERO)
                         .build());
         
         if (side == Order.OrderSide.BUY) {
@@ -86,7 +89,7 @@ public class PortfolioService {
             
             holding.setQuantity(totalQuantity);
             holding.setAveragePrice(totalValue.divide(BigDecimal.valueOf(totalQuantity), 4, RoundingMode.HALF_UP));
-            holding.setTotalInvestment(totalValue);
+            holding.setTotalCost(totalValue);
             
             holdingRepository.save(holding);
         } else {
@@ -96,11 +99,11 @@ public class PortfolioService {
                 holdingRepository.deleteByUserIdAndSymbolId(userId, symbolId);
             } else {
                 BigDecimal soldValue = price.multiply(BigDecimal.valueOf(quantity));
-                BigDecimal remainingInvestment = holding.getTotalInvestment()
+                BigDecimal remainingInvestment = holding.getTotalCost()
                         .subtract(holding.getAveragePrice().multiply(BigDecimal.valueOf(quantity)));
                 
                 holding.setQuantity(newQuantity);
-                holding.setTotalInvestment(remainingInvestment);
+                holding.setTotalCost(remainingInvestment);
                 holdingRepository.save(holding);
             }
         }
@@ -203,9 +206,9 @@ public class PortfolioService {
         Symbol symbol = symbolRepository.findById(holding.getSymbolId()).orElse(null);
         BigDecimal currentPrice = marketDataService.getCurrentPrice(holding.getSymbolId());
         BigDecimal currentValue = currentPrice.multiply(BigDecimal.valueOf(holding.getQuantity()));
-        BigDecimal pnL = currentValue.subtract(holding.getTotalInvestment());
-        BigDecimal pnLPercentage = holding.getTotalInvestment().compareTo(BigDecimal.ZERO) > 0 
-                ? pnL.divide(holding.getTotalInvestment(), 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
+        BigDecimal pnL = currentValue.subtract(holding.getTotalCost());
+        BigDecimal pnLPercentage = holding.getTotalCost().compareTo(BigDecimal.ZERO) > 0 
+                ? pnL.divide(holding.getTotalCost(), 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
                 : BigDecimal.ZERO;
         
         return HoldingResponse.builder()
@@ -215,7 +218,7 @@ public class PortfolioService {
                 .quantity(holding.getQuantity())
                 .averagePrice(holding.getAveragePrice())
                 .currentPrice(currentPrice)
-                .totalInvestment(holding.getTotalInvestment())
+                .totalCost(holding.getTotalCost())
                 .currentValue(currentValue)
                 .pnL(pnL)
                 .pnLPercentage(pnLPercentage)

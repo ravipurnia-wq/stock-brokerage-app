@@ -19,7 +19,7 @@ public class HoldingResponse {
     private Long quantity;
     private BigDecimal averagePrice;
     private BigDecimal currentPrice;
-    private BigDecimal totalInvestment;
+    private BigDecimal totalCost;
     private BigDecimal currentValue;
     private BigDecimal pnL;
     private BigDecimal pnLPercentage;

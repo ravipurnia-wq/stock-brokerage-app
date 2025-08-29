@@ -30,15 +30,17 @@ public class Transaction {
     
     private TransactionType type;
     private BigDecimal amount;
+    private BigDecimal fees;
     private TransactionStatus status;
     private String paymentMethod;
     private String description;
+    private String referenceId;
     
     @CreatedDate
     private LocalDateTime createdAt;
     
     public enum TransactionType {
-        DEPOSIT, WITHDRAWAL, FEE, BUY_SETTLEMENT, SELL_SETTLEMENT
+        DEPOSIT, WITHDRAWAL, FEE, BUY_SETTLEMENT, SELL_SETTLEMENT, STOCK_PURCHASE, STOCK_SALE
     }
     
     public enum TransactionStatus {

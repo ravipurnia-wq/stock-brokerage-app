@@ -34,7 +34,7 @@ public class Trade {
     private Order.OrderSide side;
     private Long quantity;
     private BigDecimal price;
-    private BigDecimal tradeValue;
+    private BigDecimal totalValue;
     private BigDecimal fees;
     
     @CreatedDate

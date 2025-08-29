@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Trading Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .auth-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .trading-dashboard {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .dashboard-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .user-info {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stock-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stock-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stock-symbol {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stock-price {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            transition: color 0.5s;
+        }
+
+        .stock-change {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .price-up {
+            color: #28a745;
+        }
+
+        .price-down {
+            color: #dc3545;
+        }
+
+        .price-neutral {
+            color: #6c757d;
+        }
+
+        .messages-section {
+            height: 400px;
+            overflow-y: auto;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            background: white;
+            font-size: 14px;
+        }
+
+        .message.market-data {
+            border-left-color: #28a745;
+        }
+
+        .message.portfolio-update {
+            border-left-color: #ffc107;
+        }
+
+        .message.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .portfolio-section h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .balance-amount {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .holdings-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .holding-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .holding-symbol {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .holding-quantity {
+            color: #666;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #dc3545;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .trading-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .market-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Stock Trading Platform</h1>
+            <p>Real-time trading with live market data</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-section">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchTab('register')">Register</button>
+            </div>
+
+            <div id="alerts"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+
+            <!-- Registration Form -->
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="registerFirstName">First Name</label>
+                    <input type="text" id="registerFirstName" name="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerLastName">Last Name</label>
+                    <input type="text" id="registerLastName" name="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" name="password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" name="confirmPassword" required minlength="6">
+                </div>
+                <button type="submit" class="btn">Create Account</button>
+            </form>
+        </div>
+
+        <!-- Trading Dashboard -->
+        <div id="tradingDashboard" class="trading-dashboard">
+            <!-- Status Bar -->
+            <div class="status-bar" style="grid-column: 1 / -1;">
+                <div class="status-indicator">
+                    <div id="statusDot" class="status-dot disconnected"></div>
+                    <span id="statusText">Disconnected</span>
+                </div>
+                <div id="userInfo" class="user-info">Welcome, User!</div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+
+            <!-- Market Data Section -->
+            <div class="dashboard-section">
+                <h3>📈 Live Market Data</h3>
+                <div id="marketGrid" class="market-grid">
+                    <div class="stock-card">
+                        <div class="stock-symbol">AAPL</div>
+                        <div class="stock-price" id="price-AAPL">--</div>
+                        <div class="stock-change" id="change-AAPL">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">GOOGL</div>
+                        <div class="stock-price" id="price-GOOGL">--</div>
+                        <div class="stock-change" id="change-GOOGL">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">MSFT</div>
+                        <div class="stock-price" id="price-MSFT">--</div>
+                        <div class="stock-change" id="change-MSFT">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">TSLA</div>
+                        <div class="stock-price" id="price-TSLA">--</div>
+                        <div class="stock-change" id="change-TSLA">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">AMZN</div>
+                        <div class="stock-price" id="price-AMZN">--</div>
+                        <div class="stock-change" id="change-AMZN">--</div>
+                    </div>
+                </div>
+
+                <div class="messages-section" id="messagesSection">
+                    <div class="loading">Connecting to market data...</div>
+                </div>
+            </div>
+
+            <!-- Portfolio Section -->
+            <div class="dashboard-section portfolio-section">
+                <h3>💰 Your Portfolio</h3>
+                
+                <div class="balance-card">
+                    <div>Available Balance</div>
+                    <div class="balance-amount" id="availableBalance">$0.00</div>
+                </div>
+
+                <h4>Holdings</h4>
+                <div class="holdings-list" id="holdingsList">
+                    <div class="loading">Loading portfolio...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let socket = null;
+        let authToken = null;
+        let currentUser = null;
+        let priceHistory = {};
+
+        // API Base URL
+        const API_BASE = 'http://localhost:8080/api/v1';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            checkAuthStatus();
+        });
+
+        function setupEventListeners() {
+            // Form submissions
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        }
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.auth-tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.auth-tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+
+            // Update forms
+            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+            document.getElementById(tab + 'Form').classList.add('active');
+
+            clearAlerts();
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match', 'error');
+                return;
+            }
+
+            const userData = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email'),
+                password: password
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Registration successful! Please login with your credentials.', 'success');
+                    switchTab('login');
+                    document.getElementById('registerForm').reset();
+                } else {
+                    showAlert(data.message || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+                console.error('Registration error:', error);
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const loginData = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(loginData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    showAuthenticatedView();
+                } else {
+                    showAlert(data.message || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        function checkAuthStatus() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedUser = localStorage.getItem('currentUser');
+
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                currentUser = JSON.parse(savedUser);
+                showAuthenticatedView();
+            }
+        }
+
+        function showAuthenticatedView() {
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('tradingDashboard').style.display = 'grid';
+            
+            // Update user info
+            document.getElementById('userInfo').textContent = 
+                `Welcome, ${currentUser.firstName} ${currentUser.lastName}!`;
+
+            // Connect to WebSocket and load portfolio
+            connectWebSocket();
+            loadPortfolio();
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('tradingDashboard').style.display = 'none';
+            document.getElementById('loginForm').reset();
+            clearAlerts();
+            
+            // Reset status
+            updateConnectionStatus(false);
+        }
+
+        function connectWebSocket() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                return;
+            }
+
+            try {
+                socket = new WebSocket('ws://localhost:8080/ws/market-data');
+                
+                socket.onopen = function(event) {
+                    updateConnectionStatus(true);
+                    addMessage('🔗 Connected to live market data!', 'success');
+                };
+                
+                socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleWebSocketMessage(data);
+                    } catch (e) {
+                        addMessage('📨 Raw message: ' + event.data, 'info');
+                    }
+                };
+                
+                socket.onclose = function(event) {
+                    updateConnectionStatus(false);
+                    addMessage('🔌 Connection closed. Attempting to reconnect...', 'warning');
+                    
+                    // Attempt to reconnect after 5 seconds
+                    setTimeout(() => {
+                        if (authToken) {
+                            connectWebSocket();
+                        }
+                    }, 5000);
+                };
+                
+                socket.onerror = function(error) {
+                    addMessage('❌ WebSocket error occurred', 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (error) {
+                addMessage('❌ Failed to connect: ' + error.message, 'error');
+                console.error('WebSocket connection error:', error);
+            }
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'CONNECTION_ESTABLISHED':
+                    addMessage('🎉 ' + data.message, 'success');
+                    break;
+                    
+                case 'MARKET_DATA_UPDATE':
+                    updateStockPrice(data);
+                    addMessage(`📈 ${data.symbol}: $${data.price} (Vol: ${data.volume})`, 'market-data');
+                    break;
+                    
+                case 'PORTFOLIO_UPDATE':
+                    addMessage(`💰 Portfolio Update: ${data.eventType}`, 'portfolio-update');
+                    loadPortfolio(); // Refresh portfolio data
+                    break;
+                    
+                case 'ORDER_UPDATE':
+                    addMessage(`📋 Order Update`, 'portfolio-update');
+                    break;
+                    
+                default:
+                    addMessage('📨 ' + JSON.stringify(data), 'info');
+            }
+        }
+
+        function updateStockPrice(data) {
+            const priceElement = document.getElementById(`price-${data.symbol}`);
+            const changeElement = document.getElementById(`change-${data.symbol}`);
+            
+            if (priceElement) {
+                const oldPrice = priceHistory[data.symbol] || 0;
+                const newPrice = parseFloat(data.price);
+                
+                priceElement.textContent = `$${data.price}`;
+                
+                // Calculate change
+                const change = newPrice - oldPrice;
+                const changePercent = oldPrice > 0 ? ((change / oldPrice) * 100) : 0;
+                
+                if (oldPrice > 0) {
+                    changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent.toFixed(2)}%)`;
+                    
+                    if (change > 0) {
+                        priceElement.className = 'stock-price price-up';
+                        changeElement.className = 'stock-change price-up';
+                    } else if (change < 0) {
+                        priceElement.className = 'stock-price price-down';
+                        changeElement.className = 'stock-change price-down';
+                    } else {
+                        priceElement.className = 'stock-price price-neutral';
+                        changeElement.className = 'stock-change price-neutral';
+                    }
+                } else {
+                    changeElement.textContent = '--';
+                }
+                
+                priceHistory[data.symbol] = newPrice;
+                
+                // Reset color after 2 seconds
+                setTimeout(() => {
+                    priceElement.className = 'stock-price';
+                }, 2000);
+            }
+        }
+
+        async function loadPortfolio() {
+            if (!authToken) return;
+
+            try {
+                // Load wallet balance
+                const walletResponse = await fetch(`${API_BASE}/wallet`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (walletResponse.ok) {
+                    const walletData = await walletResponse.json();
+                    document.getElementById('availableBalance').textContent = 
+                        `$${walletData.balance?.toFixed(2) || '0.00'}`;
+                }
+
+                // Load holdings
+                const holdingsResponse = await fetch(`${API_BASE}/holdings`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (holdingsResponse.ok) {
+                    const holdingsData = await holdingsResponse.json();
+                    displayHoldings(holdingsData);
+                }
+
+            } catch (error) {
+                console.error('Error loading portfolio:', error);
+                addMessage('❌ Error loading portfolio data', 'error');
+            }
+        }
+
+        function displayHoldings(holdings) {
+            const holdingsList = document.getElementById('holdingsList');
+            
+            if (!holdings || holdings.length === 0) {
+                holdingsList.innerHTML = '<div class="loading">No holdings found</div>';
+                return;
+            }
+
+            holdingsList.innerHTML = holdings.map(holding => `
+                <div class="holding-item">
+                    <div>
+                        <div class="holding-symbol">${holding.symbol}</div>
+                        <div class="holding-quantity">${holding.quantity} shares</div>
+                    </div>
+                    <div>
+                        <div>$${holding.averagePrice?.toFixed(2) || '0.00'}</div>
+                        <div class="holding-quantity">Avg Price</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function addMessage(message, type = 'info') {
+            const messagesSection = document.getElementById('messagesSection');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `
+                <span class="timestamp">[${new Date().toLocaleTimeString()}]</span> 
+                ${message}
+            `;
+            
+            messagesSection.appendChild(messageDiv);
+            messagesSection.scrollTop = messagesSection.scrollHeight;
+            
+            // Keep only last 50 messages
+            while (messagesSection.children.length > 50) {
+                messagesSection.removeChild(messagesSection.firstChild);
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertsDiv = document.getElementById('alerts');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertsDiv.appendChild(alertDiv);
+            
+            // Remove alert after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+
+        function clearAlerts() {
+            document.getElementById('alerts').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

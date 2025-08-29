@@ -2,12 +2,12 @@ package com.stockbrokerage.service;
 
 import com.stockbrokerage.entity.Symbol;
 import com.stockbrokerage.events.MarketDataEvent;
+import com.stockbrokerage.kafka.MarketDataProducer;
 import com.stockbrokerage.repository.SymbolRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +26,7 @@ public class MarketDataService {
     
     private final SymbolRepository symbolRepository;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final MarketDataProducer marketDataProducer;
     private final Random random = new Random();
     
     public BigDecimal getCurrentPrice(String symbolId) {
@@ -60,8 +60,7 @@ public class MarketDataService {
                     .volume(ThreadLocalRandom.current().nextLong(1000, 10000))
                     .build();
             
-            kafkaTemplate.send("market-data", event);
-            log.debug("Published market data update for {}: {}", symbol.getSymbol(), price);
+            marketDataProducer.publishMarketData(event);
         }
     }
     

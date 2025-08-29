@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Brokerage WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .messages { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .message { margin: 5px 0; padding: 5px; background-color: #f8f9fa; border-left: 3px solid #007bff; }
+        .market-data { border-left-color: #28a745; }
+        .portfolio-update { border-left-color: #ffc107; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .price { font-weight: bold; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Stock Brokerage WebSocket Test</h1>
+        
+        <div id="status" class="status disconnected">
+            Status: Disconnected
+        </div>
+        
+        <div>
+            <button onclick="connect()">Connect to WebSocket</button>
+            <button onclick="disconnect()">Disconnect</button>
+            <button onclick="clearMessages()">Clear Messages</button>
+        </div>
+        
+        <h3>Live Market Data & Events</h3>
+        <div id="messages" class="messages"></div>
+        
+        <h3>Current Prices</h3>
+        <div id="prices">
+            <div id="AAPL">AAPL: <span class="price">--</span></div>
+            <div id="GOOGL">GOOGL: <span class="price">--</span></div>
+            <div id="MSFT">MSFT: <span class="price">--</span></div>
+            <div id="TSLA">TSLA: <span class="price">--</span></div>
+            <div id="AMZN">AMZN: <span class="price">--</span></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        const messagesDiv = document.getElementById('messages');
+        const statusDiv = document.getElementById('status');
+
+        function connect() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                addMessage('Already connected!', 'info');
+                return;
+            }
+
+            try {
+                // Connect to the stock brokerage WebSocket endpoint
+                socket = new WebSocket('ws://localhost:8080/ws/market-data');
+                
+                socket.onopen = function(event) {
+                    statusDiv.textContent = 'Status: Connected ✅';
+                    statusDiv.className = 'status connected';
+                    addMessage('🔗 Connected to Stock Brokerage WebSocket!', 'success');
+                };
+                
+                socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleMessage(data);
+                    } catch (e) {
+                        addMessage('📨 Raw message: ' + event.data, 'info');
+                    }
+                };
+                
+                socket.onclose = function(event) {
+                    statusDiv.textContent = 'Status: Disconnected ❌';
+                    statusDiv.className = 'status disconnected';
+                    addMessage('🔌 Connection closed. Code: ' + event.code, 'warning');
+                };
+                
+                socket.onerror = function(error) {
+                    addMessage('❌ WebSocket error: ' + error, 'error');
+                };
+                
+            } catch (error) {
+                addMessage('❌ Failed to connect: ' + error.message, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        }
+
+        function handleMessage(data) {
+            switch(data.type) {
+                case 'CONNECTION_ESTABLISHED':
+                    addMessage('🎉 ' + data.message, 'success');
+                    break;
+                    
+                case 'MARKET_DATA_UPDATE':
+                    updatePrice(data);
+                    addMessage(`📈 ${data.symbol}: $${data.price} (Vol: ${data.volume})`, 'market-data');
+                    break;
+                    
+                case 'PORTFOLIO_UPDATE':
+                    addMessage(`💰 Portfolio Update for ${data.userId}: ${data.eventType}`, 'portfolio-update');
+                    break;
+                    
+                case 'ORDER_UPDATE':
+                    addMessage(`📋 Order Update for ${data.userId}`, 'portfolio-update');
+                    break;
+                    
+                default:
+                    addMessage('📨 ' + JSON.stringify(data), 'info');
+            }
+        }
+
+        function updatePrice(data) {
+            const priceElement = document.querySelector(`#${data.symbol} .price`);
+            if (priceElement) {
+                const oldPrice = parseFloat(priceElement.textContent) || 0;
+                const newPrice = parseFloat(data.price);
+                
+                priceElement.textContent = `$${data.price}`;
+                
+                // Add visual indicator for price change
+                if (newPrice > oldPrice) {
+                    priceElement.style.color = '#28a745'; // Green for up
+                } else if (newPrice < oldPrice) {
+                    priceElement.style.color = '#dc3545'; // Red for down
+                } else {
+                    priceElement.style.color = '#6c757d'; // Gray for no change
+                }
+                
+                // Reset color after 2 seconds
+                setTimeout(() => {
+                    priceElement.style.color = '#000';
+                }, 2000);
+            }
+        }
+
+        function addMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `<span style="color: #666;">[${new Date().toLocaleTimeString()}]</span> ${message}`;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Keep only last 100 messages
+            while (messagesDiv.children.length > 100) {
+                messagesDiv.removeChild(messagesDiv.firstChild);
+            }
+        }
+
+        function clearMessages() {
+            messagesDiv.innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            addMessage('🚀 Stock Brokerage WebSocket Test Ready!', 'info');
+            addMessage('Click "Connect to WebSocket" to start receiving live market data', 'info');
+        };
+    </script>
+</body>
+</html>

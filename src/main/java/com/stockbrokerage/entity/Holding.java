@@ -33,7 +33,7 @@ public class Holding {
     
     private Long quantity;
     private BigDecimal averagePrice;
-    private BigDecimal totalInvestment;
+    private BigDecimal totalCost;
     
     @CreatedDate
     private LocalDateTime createdAt;
