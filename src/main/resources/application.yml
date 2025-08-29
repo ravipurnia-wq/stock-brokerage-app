@@ -1,0 +1,66 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: stock-brokerage-app
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: stock_brokerage
+      auto-index-creation: true
+
+  # Redis Configuration
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: stock-brokerage-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.stockbrokerage.events"
+      auto-offset-reset: earliest
+
+# JWT Configuration
+jwt:
+  secret: mySecretKey123456789012345678901234567890
+  expiration: 86400000 # 24 hours in milliseconds
+
+# Application Configuration
+app:
+  trading:
+    market-hours:
+      start: "09:30"
+      end: "16:00"
+    fees:
+      per-trade: 0.99
+      percentage: 0.001
+  
+  rate-limit:
+    orders-per-minute: 10
+    api-calls-per-minute: 100
+
+logging:
+  level:
+    com.stockbrokerage: DEBUG
+    org.springframework.kafka: INFO
+    org.springframework.security: DEBUG
