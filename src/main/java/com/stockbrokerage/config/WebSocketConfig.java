@@ -17,7 +17,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(marketDataWebSocketHandler, "/ws/market-data")
-                .setAllowedOrigins("*") // In production, specify allowed origins
-                .withSockJS();
+                .setAllowedOriginPatterns("http://localhost:*", "https://localhost:*");
     }
 }

@@ -75,9 +75,10 @@ public class AuthController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error authenticating user", e);
+            log.error("Error authenticating user: " + e.getClass().getSimpleName() + " - " + e.getMessage(), e);
+            e.printStackTrace();
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Authentication failed", "message", "Invalid credentials"));
+                    .body(Map.of("error", "Authentication failed", "message", "Invalid credentials", "details", e.getMessage()));
         }
     }
 

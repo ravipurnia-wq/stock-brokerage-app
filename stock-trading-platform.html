@@ -563,7 +563,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    authToken = data.token;
+                    authToken = data.accessToken;
                     currentUser = data.user;
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));

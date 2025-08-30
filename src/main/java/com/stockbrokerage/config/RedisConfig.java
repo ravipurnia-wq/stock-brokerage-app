@@ -15,7 +15,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import java.time.Duration;
 
 @Configuration
-@EnableCaching
+// @EnableCaching  // Temporarily disabled for login fix
 public class RedisConfig {
 
     @Bean

@@ -23,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Market data initialization completed successfully");
         } catch (Exception e) {
             log.error("Error during data initialization", e);
+            // Don't let initialization errors prevent startup
         }
     }
 }

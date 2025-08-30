@@ -62,6 +62,14 @@ app:
     orders-per-minute: 10
     api-calls-per-minute: 100
 
+# Finnhub API Configuration
+finnhub:
+  api:
+    base-url: https://finnhub.io/api/v1
+    token: d2pame1r01qnhraqb5s0d2pame1r01qnhraqb5sg
+    websocket-url: wss://ws.finnhub.io
+    rate-limit: 30 # 30 calls per second
+
 logging:
   level:
     com.stockbrokerage: DEBUG

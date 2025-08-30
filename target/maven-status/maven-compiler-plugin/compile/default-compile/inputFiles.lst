@@ -18,6 +18,7 @@
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/entity/Holding.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/events/OrderPlacedEvent.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/config/AuthenticationConfig.java
+/Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/config/WebConfig.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/dto/PortfolioSummary.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/repository/HoldingRepository.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/security/JwtAuthenticationEntryPoint.java
@@ -25,10 +26,14 @@
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/dto/LoginRequest.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/dto/DepositRequest.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/controller/PortfolioController.java
+/Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/service/FinnhubApiService.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/events/PortfolioUpdateEvent.java
+/Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/repository/UserWatchlistRepository.java
+/Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/controller/WebController.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/service/UserService.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/config/DataInitializer.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/repository/SymbolRepository.java
+/Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/entity/UserWatchlist.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/kafka/PortfolioUpdateConsumer.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/config/SecurityConfig.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/entity/Trade.java
@@ -41,8 +46,10 @@
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/entity/UserKyc.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/controller/PaymentController.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/security/UserPrincipal.java
+/Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/service/StockSearchService.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/entity/Order.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/kafka/OrderEventConsumer.java
+/Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/service/RealTimeStockService.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/events/MarketDataEvent.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/dto/OrderResponse.java
 /Users/ravikashyap/stock-brokerage-app/src/main/java/com/stockbrokerage/kafka/TradeEventConsumer.java

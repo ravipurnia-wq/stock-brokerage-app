@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Trading Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .auth-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .trading-dashboard {
+            display: none;
+            grid-template-columns: 300px 1fr 1fr;
+            gap: 30px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .dashboard-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .watchlist-sidebar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            position: sticky;
+            top: 20px;
+        }
+
+        .watchlist-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .watchlist-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .watchlist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s;
+        }
+
+        .watchlist-item:hover {
+            background: #f0f2ff;
+            transform: translateX(5px);
+        }
+
+        .watchlist-item-info {
+            flex: 1;
+        }
+
+        .watchlist-item-symbol {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .watchlist-item-name {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .watchlist-item-price {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .watchlist-item-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .watchlist-buy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .watchlist-buy-btn:hover {
+            background: #218838;
+        }
+
+        .watchlist-buy-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .watchlist-remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .watchlist-remove-btn:hover {
+            background: #c82333;
+        }
+
+        .watchlist-empty {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .search-section {
+            margin-bottom: 20px;
+        }
+
+        .search-section h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .user-info {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stock-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stock-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stock-symbol {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stock-price {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            transition: color 0.5s;
+        }
+
+        .stock-change {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .buy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        .buy-btn:hover {
+            background: #218838;
+        }
+
+        .buy-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .price-up {
+            color: #28a745;
+        }
+
+        .price-down {
+            color: #dc3545;
+        }
+
+        .price-neutral {
+            color: #6c757d;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .search-result-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-result-item:hover {
+            background-color: #f8f9ff;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-symbol {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .search-result-name {
+            color: #333;
+            margin: 5px 0;
+        }
+
+        .search-result-details {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .search-result-added {
+            background-color: #f0f8f0;
+            position: relative;
+        }
+
+        .search-result-added::after {
+            content: "✓ Added";
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #28a745;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .add-stock-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .add-stock-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .add-stock-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .messages-section {
+            height: 400px;
+            overflow-y: auto;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            background: white;
+            font-size: 14px;
+        }
+
+        .message.market-data {
+            border-left-color: #28a745;
+        }
+
+        .message.portfolio-update {
+            border-left-color: #ffc107;
+        }
+
+        .message.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .portfolio-section h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .balance-amount {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .holdings-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .holding-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .holding-symbol {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .holding-quantity {
+            color: #666;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #dc3545;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 20px;
+            top: 15px;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .order-summary {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .order-summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .order-summary-row.total {
+            font-weight: bold;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .trading-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .market-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Stock Trading Platform</h1>
+            <p>Real-time trading with live market data</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-section">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchTab('register')">Register</button>
+            </div>
+
+            <div id="alerts"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+
+            <!-- Registration Form -->
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="registerFirstName">First Name</label>
+                    <input type="text" id="registerFirstName" name="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerLastName">Last Name</label>
+                    <input type="text" id="registerLastName" name="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" name="password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" name="confirmPassword" required minlength="6">
+                </div>
+                <button type="submit" class="btn">Create Account</button>
+            </form>
+        </div>
+
+        <!-- Trading Dashboard -->
+        <div id="tradingDashboard" class="trading-dashboard">
+            <!-- Status Bar -->
+            <div class="status-bar" style="grid-column: 1 / -1;">
+                <div class="status-indicator">
+                    <div id="statusDot" class="status-dot disconnected"></div>
+                    <span id="statusText">Disconnected</span>
+                </div>
+                <div id="userInfo" class="user-info">Welcome, User!</div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+
+            <!-- Watchlist Sidebar -->
+            <div class="watchlist-sidebar">
+                <div class="watchlist-header">
+                    <h3 class="watchlist-title">📋 My Watchlist</h3>
+                </div>
+                
+                <!-- Search Section -->
+                <div class="search-section">
+                    <h4>🔍 Add Stocks</h4>
+                    <div class="search-container">
+                        <input 
+                            type="text" 
+                            id="stockSearchInput" 
+                            placeholder="Search stocks..."
+                            class="search-input"
+                        />
+                        <div id="searchResults" class="search-results" style="display: none;">
+                            <!-- Search results will appear here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watchlist Items -->
+                <div id="watchlistItems" class="watchlist-items">
+                    <div class="watchlist-empty">
+                        No stocks in watchlist. Search and add stocks above.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Data Section -->
+            <div class="dashboard-section">
+                <h3>📈 Live Market Data</h3>
+                <div id="marketGrid" class="market-grid">
+                    <div class="stock-card">
+                        <div class="stock-symbol">AAPL</div>
+                        <div class="stock-price" id="price-AAPL">--</div>
+                        <div class="stock-change" id="change-AAPL">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">GOOGL</div>
+                        <div class="stock-price" id="price-GOOGL">--</div>
+                        <div class="stock-change" id="change-GOOGL">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">MSFT</div>
+                        <div class="stock-price" id="price-MSFT">--</div>
+                        <div class="stock-change" id="change-MSFT">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">TSLA</div>
+                        <div class="stock-price" id="price-TSLA">--</div>
+                        <div class="stock-change" id="change-TSLA">--</div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-symbol">AMZN</div>
+                        <div class="stock-price" id="price-AMZN">--</div>
+                        <div class="stock-change" id="change-AMZN">--</div>
+                    </div>
+                </div>
+
+                <div class="messages-section" id="messagesSection">
+                    <div class="loading">Connecting to market data...</div>
+                </div>
+            </div>
+
+            <!-- Portfolio Section -->
+            <div class="dashboard-section portfolio-section">
+                <h3>💰 Your Portfolio</h3>
+                
+                <div class="balance-card">
+                    <div>Available Balance</div>
+                    <div class="balance-amount" id="availableBalance">$0.00</div>
+                </div>
+
+                <h4>Holdings</h4>
+                <div class="holdings-list" id="holdingsList">
+                    <div class="loading">Loading portfolio...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buy Stock Modal -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBuyModal()">&times;</span>
+            <h3>Buy Stock</h3>
+            <form id="buyForm">
+                <div class="form-group">
+                    <label for="buySymbol">Stock Symbol</label>
+                    <input type="text" id="buySymbol" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="buyCompanyName">Company Name</label>
+                    <input type="text" id="buyCompanyName" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="buyQuantity">Quantity</label>
+                    <input type="number" id="buyQuantity" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="buyOrderType">Order Type</label>
+                    <select id="buyOrderType" onchange="togglePriceField()">
+                        <option value="MARKET">Market Order</option>
+                        <option value="LIMIT">Limit Order</option>
+                    </select>
+                </div>
+                <div class="form-group" id="priceField" style="display: none;">
+                    <label for="buyPrice">Limit Price ($)</label>
+                    <input type="number" id="buyPrice" step="0.01" min="0.01">
+                </div>
+                
+                <div class="order-summary">
+                    <div class="order-summary-row">
+                        <span>Current Price:</span>
+                        <span id="currentPrice">--</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Quantity:</span>
+                        <span id="summaryQuantity">1</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Estimated Value:</span>
+                        <span id="estimatedValue">--</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Fees (0.1%):</span>
+                        <span id="estimatedFees">--</span>
+                    </div>
+                    <div class="order-summary-row total">
+                        <span>Total Amount:</span>
+                        <span id="totalAmount">--</span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">Place Buy Order</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let socket = null;
+        let authToken = null;
+        let currentUser = null;
+        let priceHistory = {};
+
+        // API Base URL - relative since we're on the same server
+        const API_BASE = '/api/v1';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            checkAuthStatus();
+        });
+
+        function setupEventListeners() {
+            // Form submissions
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        }
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.auth-tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.auth-tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+
+            // Update forms
+            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+            document.getElementById(tab + 'Form').classList.add('active');
+
+            clearAlerts();
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match', 'error');
+                return;
+            }
+
+            const userData = {
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: formData.get('email'),
+                password: password
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Registration successful! Please login with your credentials.', 'success');
+                    switchTab('login');
+                    document.getElementById('registerForm').reset();
+                } else {
+                    showAlert(data.message || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+                console.error('Registration error:', error);
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const loginData = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(loginData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.accessToken;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    showAuthenticatedView();
+                } else {
+                    showAlert(data.message || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        function checkAuthStatus() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedUser = localStorage.getItem('currentUser');
+
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                currentUser = JSON.parse(savedUser);
+                showAuthenticatedView();
+            }
+        }
+
+        function showAuthenticatedView() {
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('tradingDashboard').style.display = 'grid';
+            
+            // Update user info
+            document.getElementById('userInfo').textContent = 
+                `Welcome, ${currentUser.firstName} ${currentUser.lastName}!`;
+
+            // Connect to WebSocket and load data
+            connectWebSocket();
+            loadPortfolio();
+            loadMarketData();
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('tradingDashboard').style.display = 'none';
+            document.getElementById('loginForm').reset();
+            clearAlerts();
+            
+            // Reset status
+            updateConnectionStatus(false);
+        }
+
+        function connectWebSocket() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                return;
+            }
+
+            try {
+                // Connect to WebSocket using relative URL
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws/market-data`;
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = function(event) {
+                    updateConnectionStatus(true);
+                    addMessage('🔗 Connected to live market data!', 'success');
+                };
+                
+                socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleWebSocketMessage(data);
+                    } catch (e) {
+                        addMessage('📨 Raw message: ' + event.data, 'info');
+                    }
+                };
+                
+                socket.onclose = function(event) {
+                    updateConnectionStatus(false);
+                    addMessage('🔌 Connection closed. Attempting to reconnect...', 'warning');
+                    
+                    // Attempt to reconnect after 5 seconds
+                    setTimeout(() => {
+                        if (authToken) {
+                            connectWebSocket();
+                        }
+                    }, 5000);
+                };
+                
+                socket.onerror = function(error) {
+                    addMessage('❌ WebSocket error occurred', 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (error) {
+                addMessage('❌ Failed to connect: ' + error.message, 'error');
+                console.error('WebSocket connection error:', error);
+            }
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'CONNECTION_ESTABLISHED':
+                    addMessage('🎉 ' + data.message, 'success');
+                    break;
+                    
+                case 'MARKET_DATA_UPDATE':
+                    updateStockPrice(data);
+                    addMessage(`📈 ${data.symbol}: $${data.price} (Vol: ${data.volume})`, 'market-data');
+                    break;
+                    
+                case 'PORTFOLIO_UPDATE':
+                    addMessage(`💰 Portfolio Update: ${data.eventType}`, 'portfolio-update');
+                    loadPortfolio(); // Refresh portfolio data
+                    break;
+                    
+                case 'ORDER_UPDATE':
+                    addMessage(`📋 Order Update`, 'portfolio-update');
+                    break;
+                    
+                default:
+                    addMessage('📨 ' + JSON.stringify(data), 'info');
+            }
+        }
+
+        function updateStockPrice(data) {
+            const priceElement = document.getElementById(`price-${data.symbol}`);
+            const changeElement = document.getElementById(`change-${data.symbol}`);
+            
+            // Update main market grid prices
+            if (priceElement) {
+                const oldPrice = priceHistory[data.symbol] || 0;
+                const newPrice = parseFloat(data.price);
+                
+                priceElement.textContent = `$${data.price}`;
+                
+                // Calculate change
+                const change = newPrice - oldPrice;
+                const changePercent = oldPrice > 0 ? ((change / oldPrice) * 100) : 0;
+                
+                if (oldPrice > 0) {
+                    changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent.toFixed(2)}%)`;
+                    
+                    if (change > 0) {
+                        priceElement.className = 'stock-price price-up';
+                        changeElement.className = 'stock-change price-up';
+                    } else if (change < 0) {
+                        priceElement.className = 'stock-price price-down';
+                        changeElement.className = 'stock-change price-down';
+                    } else {
+                        priceElement.className = 'stock-price price-neutral';
+                        changeElement.className = 'stock-change price-neutral';
+                    }
+                } else {
+                    changeElement.textContent = '--';
+                }
+                
+                priceHistory[data.symbol] = newPrice;
+                
+                // Reset color after 2 seconds
+                setTimeout(() => {
+                    priceElement.className = 'stock-price';
+                }, 2000);
+            }
+            
+            // Update watchlist prices
+            const watchlistPriceElement = document.getElementById(`watchlist-price-${data.symbol}`);
+            if (watchlistPriceElement) {
+                watchlistPriceElement.textContent = `$${data.price}`;
+                
+                // Add price change animation for watchlist
+                watchlistPriceElement.style.color = '#28a745';
+                setTimeout(() => {
+                    watchlistPriceElement.style.color = '#333';
+                }, 1000);
+            }
+        }
+
+        async function loadPortfolio() {
+            if (!authToken) return;
+
+            try {
+                // Load wallet balance
+                const walletResponse = await fetch(`${API_BASE}/wallet`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (walletResponse.ok) {
+                    const walletData = await walletResponse.json();
+                    document.getElementById('availableBalance').textContent = 
+                        `$${walletData.balance?.toFixed(2) || '0.00'}`;
+                }
+
+                // Load holdings
+                const holdingsResponse = await fetch(`${API_BASE}/holdings`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (holdingsResponse.ok) {
+                    const holdingsData = await holdingsResponse.json();
+                    displayHoldings(holdingsData);
+                }
+
+            } catch (error) {
+                console.error('Error loading portfolio:', error);
+                addMessage('❌ Error loading portfolio data', 'error');
+            }
+        }
+
+        function displayHoldings(holdings) {
+            const holdingsList = document.getElementById('holdingsList');
+            
+            if (!holdings || holdings.length === 0) {
+                holdingsList.innerHTML = '<div class="loading">No holdings found</div>';
+                return;
+            }
+
+            holdingsList.innerHTML = holdings.map(holding => `
+                <div class="holding-item">
+                    <div>
+                        <div class="holding-symbol">${holding.symbol}</div>
+                        <div class="holding-quantity">${holding.quantity} shares</div>
+                    </div>
+                    <div>
+                        <div>$${holding.averagePrice?.toFixed(2) || '0.00'}</div>
+                        <div class="holding-quantity">Avg Price</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function addMessage(message, type = 'info') {
+            const messagesSection = document.getElementById('messagesSection');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `
+                <span class="timestamp">[${new Date().toLocaleTimeString()}]</span> 
+                ${message}
+            `;
+            
+            messagesSection.appendChild(messageDiv);
+            messagesSection.scrollTop = messagesSection.scrollHeight;
+            
+            // Keep only last 50 messages
+            while (messagesSection.children.length > 50) {
+                messagesSection.removeChild(messagesSection.firstChild);
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertsDiv = document.getElementById('alerts');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertsDiv.appendChild(alertDiv);
+            
+            // Remove alert after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+
+        function clearAlerts() {
+            document.getElementById('alerts').innerHTML = '';
+        }
+
+        // Stock Search Functionality
+        let searchTimeout;
+        const stockSearchInput = document.getElementById('stockSearchInput');
+        const searchResults = document.getElementById('searchResults');
+
+        stockSearchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            // Clear previous timeout
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                hideSearchResults();
+                return;
+            }
+            
+            // Debounce search to avoid too many API calls
+            searchTimeout = setTimeout(() => {
+                searchStocks(query);
+            }, 300);
+        });
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.search-container')) {
+                hideSearchResults();
+            }
+        });
+
+        async function searchStocks(query) {
+            try {
+                const response = await fetch(`${API_BASE}/market/search?query=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const results = await response.json();
+                displaySearchResults(results);
+            } catch (error) {
+                console.error('Error searching stocks:', error);
+                hideSearchResults();
+            }
+        }
+
+        function displaySearchResults(results) {
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="search-result-item">No stocks found</div>';
+                searchResults.style.display = 'block';
+                return;
+            }
+
+            searchResults.innerHTML = '';
+            
+            results.forEach(stock => {
+                const resultItem = document.createElement('div');
+                resultItem.className = `search-result-item ${stock.isAdded ? 'search-result-added' : ''}`;
+                
+                resultItem.innerHTML = `
+                    <div class="search-result-symbol">${stock.symbol}</div>
+                    <div class="search-result-name">${stock.companyName}</div>
+                    <div class="search-result-details">${stock.exchange} • ${stock.sector}</div>
+                `;
+                
+                if (!stock.isAdded) {
+                    const addButton = document.createElement('button');
+                    addButton.className = 'add-stock-btn';
+                    addButton.textContent = 'Add to Watchlist';
+                    addButton.onclick = function(event) {
+                        event.stopPropagation();
+                        addStock(stock.symbol, stock.companyName, stock.exchange, stock.sector);
+                    };
+                    resultItem.appendChild(addButton);
+                    
+                    resultItem.onclick = function() {
+                        addStock(stock.symbol, stock.companyName, stock.exchange, stock.sector);
+                    };
+                }
+                
+                searchResults.appendChild(resultItem);
+            });
+
+            searchResults.style.display = 'block';
+        }
+
+        function hideSearchResults() {
+            searchResults.style.display = 'none';
+        }
+
+        async function addStock(symbol, companyName, exchange, sector) {
+            console.log('addStock called with:', { symbol, companyName, exchange, sector });
+            console.log('authToken:', authToken);
+            
+            if (!authToken) {
+                showAlert('Please login first to add stocks to your watchlist', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/market/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        companyName: companyName,
+                        exchange: exchange,
+                        sector: sector
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to add stock');
+                }
+
+                const addedStock = await response.json();
+                
+                // Show success message
+                showAlert(`Successfully added ${symbol} to your watchlist!`, 'success');
+                
+                // Refresh market data and watchlist to show the new stock
+                setTimeout(() => {
+                    loadMarketData();
+                    loadWatchlist();
+                }, 1000);
+                
+                // Hide search results and clear input
+                hideSearchResults();
+                stockSearchInput.value = '';
+                
+            } catch (error) {
+                console.error('Error adding stock:', error);
+                showAlert(error.message || 'Failed to add stock to watchlist', 'error');
+            }
+        }
+
+        async function loadMarketData() {
+            try {
+                const response = await fetch(`${API_BASE}/market/symbols`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load market data');
+                }
+
+                const symbols = await response.json();
+                updateMarketGrid(symbols);
+                
+            } catch (error) {
+                console.error('Error loading market data:', error);
+            }
+        }
+
+        function updateMarketGrid(symbols) {
+            const marketGrid = document.getElementById('marketGrid');
+            
+            // Clear existing static cards
+            marketGrid.innerHTML = '';
+            
+            // Add cards for each active symbol
+            symbols.forEach(symbol => {
+                const stockCard = document.createElement('div');
+                stockCard.className = 'stock-card';
+                stockCard.innerHTML = `
+                    <div class="stock-symbol">${symbol.symbol}</div>
+                    <div class="stock-price" id="price-${symbol.symbol}">--</div>
+                    <div class="stock-change" id="change-${symbol.symbol}">--</div>
+                `;
+                
+                // Add buy button
+                const buyButton = document.createElement('button');
+                buyButton.className = 'buy-btn';
+                buyButton.textContent = 'Buy';
+                buyButton.onclick = function() {
+                    openBuyModal(symbol.symbol, symbol.companyName);
+                };
+                stockCard.appendChild(buyButton);
+                
+                marketGrid.appendChild(stockCard);
+            });
+        }
+
+        // Initialize market data when dashboard loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listener for search functionality
+            const searchInput = document.getElementById('stockSearchInput');
+            if (searchInput) {
+                // Re-attach event listeners after DOM is ready
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.trim();
+                    clearTimeout(searchTimeout);
+                    
+                    if (query.length < 2) {
+                        hideSearchResults();
+                        return;
+                    }
+                    
+                    searchTimeout = setTimeout(() => {
+                        searchStocks(query);
+                    }, 300);
+                });
+            }
+        });
+
+        // Watchlist Management Functions
+        async function loadWatchlist() {
+            try {
+                const response = await fetch(`${API_BASE}/market/symbols`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load watchlist');
+                }
+
+                const symbols = await response.json();
+                updateWatchlistDisplay(symbols);
+                
+            } catch (error) {
+                console.error('Error loading watchlist:', error);
+            }
+        }
+
+        function updateWatchlistDisplay(symbols) {
+            const watchlistItems = document.getElementById('watchlistItems');
+            
+            if (symbols.length === 0) {
+                watchlistItems.innerHTML = `
+                    <div class="watchlist-empty">
+                        No stocks in watchlist. Search and add stocks above.
+                    </div>
+                `;
+                return;
+            }
+
+            const watchlistHtml = symbols.map(symbol => `
+                <div class="watchlist-item" data-symbol="${symbol.symbol}">
+                    <div class="watchlist-item-info">
+                        <div class="watchlist-item-symbol">${symbol.symbol}</div>
+                        <div class="watchlist-item-name">${symbol.companyName}</div>
+                    </div>
+                    <div class="watchlist-item-price" id="watchlist-price-${symbol.symbol}">--</div>
+                    <div class="watchlist-item-actions">
+                        <button class="watchlist-buy-btn" onclick="openBuyModal('${symbol.symbol}', '${symbol.companyName}')">
+                            Buy
+                        </button>
+                        <button class="watchlist-remove-btn" onclick="removeFromWatchlist('${symbol.symbol}')">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            watchlistItems.innerHTML = watchlistHtml;
+            
+            // Fetch current prices for watchlist items
+            symbols.forEach(symbol => {
+                fetchCurrentPrice(symbol.symbol);
+            });
+        }
+        
+        async function fetchCurrentPrice(symbol) {
+            try {
+                const response = await fetch(`${API_BASE}/market/data/${symbol}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const marketData = await response.json();
+                    if (marketData && marketData.price) {
+                        const watchlistPriceElement = document.getElementById(`watchlist-price-${symbol}`);
+                        if (watchlistPriceElement) {
+                            watchlistPriceElement.textContent = `$${marketData.price}`;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log(`Could not fetch current price for ${symbol}:`, error);
+            }
+        }
+
+        async function removeFromWatchlist(symbol) {
+            if (!confirm(`Remove ${symbol} from your watchlist?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/market/remove/${symbol}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to remove stock from watchlist');
+                }
+
+                // Show success message
+                showAlert(`Successfully removed ${symbol} from your watchlist!`, 'success');
+                
+                // Refresh watchlist and market data
+                loadWatchlist();
+                loadMarketData();
+                
+            } catch (error) {
+                console.error('Error removing stock:', error);
+                showAlert(error.message || 'Failed to remove stock from watchlist', 'error');
+            }
+        }
+
+        // Update watchlist prices when market data changes
+        function updateWatchlistPrices(marketData) {
+            if (marketData && marketData.symbol) {
+                const priceElement = document.getElementById(`watchlist-price-${marketData.symbol}`);
+                if (priceElement) {
+                    priceElement.textContent = `$${marketData.price}`;
+                    
+                    // Add price change animation
+                    priceElement.style.color = '#28a745';
+                    setTimeout(() => {
+                        priceElement.style.color = '#333';
+                    }, 1000);
+                }
+            }
+        }
+
+        // Update the onLoginSuccess function to load watchlist
+        const originalOnLoginSuccess = onLoginSuccess;
+        function onLoginSuccess() {
+            originalOnLoginSuccess();
+            loadWatchlist();
+        }
+
+        // Buy Modal Functions
+        let currentBuyStock = null;
+
+        function openBuyModal(symbol, companyName) {
+            if (!authToken) {
+                showAlert('Please login first to buy stocks', 'error');
+                return;
+            }
+
+            currentBuyStock = { symbol, companyName };
+            
+            // Populate modal fields
+            document.getElementById('buySymbol').value = symbol;
+            document.getElementById('buyCompanyName').value = companyName;
+            document.getElementById('buyQuantity').value = 1;
+            document.getElementById('buyOrderType').value = 'MARKET';
+            document.getElementById('priceField').style.display = 'none';
+            
+            // Get current price and update summary
+            updateOrderSummary();
+            
+            // Show modal
+            document.getElementById('buyModal').style.display = 'block';
+        }
+
+        function closeBuyModal() {
+            document.getElementById('buyModal').style.display = 'none';
+            document.getElementById('buyForm').reset();
+            currentBuyStock = null;
+        }
+
+        function togglePriceField() {
+            const orderType = document.getElementById('buyOrderType').value;
+            const priceField = document.getElementById('priceField');
+            
+            if (orderType === 'LIMIT') {
+                priceField.style.display = 'block';
+                document.getElementById('buyPrice').required = true;
+            } else {
+                priceField.style.display = 'none';
+                document.getElementById('buyPrice').required = false;
+            }
+            
+            updateOrderSummary();
+        }
+
+        function updateOrderSummary() {
+            if (!currentBuyStock) return;
+            
+            const quantity = parseInt(document.getElementById('buyQuantity').value) || 1;
+            const orderType = document.getElementById('buyOrderType').value;
+            const limitPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+            
+            // Get current price from the market grid
+            const priceElement = document.getElementById(`price-${currentBuyStock.symbol}`);
+            const currentPriceText = priceElement ? priceElement.textContent : '--';
+            const currentPrice = currentPriceText.startsWith('$') ? 
+                parseFloat(currentPriceText.substring(1)) : 0;
+            
+            // Update current price display
+            document.getElementById('currentPrice').textContent = currentPriceText;
+            document.getElementById('summaryQuantity').textContent = quantity;
+            
+            if (currentPrice > 0) {
+                const usePrice = orderType === 'LIMIT' && limitPrice > 0 ? limitPrice : currentPrice;
+                const estimatedValue = usePrice * quantity;
+                const fees = estimatedValue * 0.001; // 0.1% fee
+                const totalAmount = estimatedValue + fees;
+                
+                document.getElementById('estimatedValue').textContent = `$${estimatedValue.toFixed(2)}`;
+                document.getElementById('estimatedFees').textContent = `$${fees.toFixed(2)}`;
+                document.getElementById('totalAmount').textContent = `$${totalAmount.toFixed(2)}`;
+            } else {
+                document.getElementById('estimatedValue').textContent = '--';
+                document.getElementById('estimatedFees').textContent = '--';
+                document.getElementById('totalAmount').textContent = '--';
+            }
+        }
+
+        // Buy form event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const buyForm = document.getElementById('buyForm');
+            if (buyForm) {
+                buyForm.addEventListener('submit', handleBuyOrder);
+            }
+            
+            // Update summary when quantity changes
+            const quantityInput = document.getElementById('buyQuantity');
+            if (quantityInput) {
+                quantityInput.addEventListener('input', updateOrderSummary);
+            }
+            
+            const priceInput = document.getElementById('buyPrice');
+            if (priceInput) {
+                priceInput.addEventListener('input', updateOrderSummary);
+            }
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('buyModal');
+                if (event.target === modal) {
+                    closeBuyModal();
+                }
+            });
+        });
+
+        async function handleBuyOrder(e) {
+            e.preventDefault();
+            
+            if (!currentBuyStock || !authToken) {
+                showAlert('Please login first', 'error');
+                return;
+            }
+            
+            const formData = new FormData(e.target);
+            const orderData = {
+                symbol: currentBuyStock.symbol,
+                orderType: document.getElementById('buyOrderType').value,
+                side: 'BUY',
+                quantity: parseInt(document.getElementById('buyQuantity').value)
+            };
+            
+            // Add price for limit orders
+            if (orderData.orderType === 'LIMIT') {
+                const limitPrice = parseFloat(document.getElementById('buyPrice').value);
+                if (!limitPrice || limitPrice <= 0) {
+                    showAlert('Please enter a valid limit price', 'error');
+                    return;
+                }
+                orderData.price = limitPrice;
+            }
+            
+            try {
+                // Disable submit button
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Placing Order...';
+                
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Buy order placed successfully for ${orderData.quantity} shares of ${currentBuyStock.symbol}!`, 'success');
+                    closeBuyModal();
+                    
+                    // Refresh portfolio data
+                    loadPortfolio();
+                    
+                    // Add message to feed
+                    addMessage(`📋 Buy order placed: ${orderData.quantity} shares of ${currentBuyStock.symbol}`, 'portfolio-update');
+                } else {
+                    showAlert(result.message || 'Failed to place buy order', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error placing buy order:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                // Re-enable submit button
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Place Buy Order';
+            }
+        }
+    </script>
+</body>
+</html>

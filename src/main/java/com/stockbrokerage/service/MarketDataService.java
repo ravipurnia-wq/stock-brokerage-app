@@ -78,7 +78,7 @@ public class MarketDataService {
         // - Sending notifications to users
     }
     
-    @Scheduled(fixedRate = 30000) // Every 30 seconds
+    // @Scheduled(fixedRate = 30000) // Disabled - using RealTimeStockService instead
     public void simulateMarketData() {
         List<Symbol> symbols = symbolRepository.findByIsActiveTrue();
         

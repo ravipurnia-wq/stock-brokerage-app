@@ -4,8 +4,11 @@ com/stockbrokerage/controller/PortfolioController.class
 com/stockbrokerage/events/OrderPlacedEvent$OrderPlacedEventBuilder.class
 com/stockbrokerage/repository/SymbolRepository.class
 com/stockbrokerage/repository/WalletRepository.class
+com/stockbrokerage/service/StockSearchService.class
 com/stockbrokerage/StockBrokerageApplication.class
+com/stockbrokerage/service/FinnhubApiService$StockQuote.class
 com/stockbrokerage/dto/OrderResponse.class
+com/stockbrokerage/controller/WebController.class
 com/stockbrokerage/kafka/TradeEventConsumer.class
 com/stockbrokerage/service/UserService.class
 com/stockbrokerage/events/MarketDataEvent$MarketDataEventBuilder.class
@@ -38,12 +41,16 @@ com/stockbrokerage/entity/UserKyc$UserKycBuilder.class
 com/stockbrokerage/dto/OrderRequest.class
 com/stockbrokerage/config/AuthenticationConfig.class
 com/stockbrokerage/security/JwtAuthenticationFilter.class
+com/stockbrokerage/config/WebConfig.class
 com/stockbrokerage/events/MarketDataEvent.class
 com/stockbrokerage/entity/Order$OrderSide.class
+com/stockbrokerage/service/RealTimeStockService.class
 com/stockbrokerage/controller/AuthController.class
 com/stockbrokerage/config/WebSocketConfig.class
 com/stockbrokerage/entity/Holding$HoldingBuilder.class
+com/stockbrokerage/entity/UserWatchlist.class
 com/stockbrokerage/kafka/EventPublisher.class
+com/stockbrokerage/repository/UserWatchlistRepository.class
 com/stockbrokerage/entity/Transaction$TransactionStatus.class
 com/stockbrokerage/entity/UserKyc$VerificationStatus.class
 com/stockbrokerage/entity/User$KycStatus.class
@@ -60,6 +67,7 @@ com/stockbrokerage/controller/PaymentController.class
 com/stockbrokerage/repository/UserRepository.class
 com/stockbrokerage/entity/Order$OrderStatus.class
 com/stockbrokerage/events/OrderPlacedEvent.class
+com/stockbrokerage/service/FinnhubApiService.class
 com/stockbrokerage/controller/MarketDataController.class
 com/stockbrokerage/entity/Transaction.class
 com/stockbrokerage/config/RedisConfig.class
@@ -77,4 +85,5 @@ com/stockbrokerage/events/TradeExecutedEvent.class
 com/stockbrokerage/entity/Wallet$WalletBuilder.class
 com/stockbrokerage/entity/Transaction$TransactionType.class
 com/stockbrokerage/repository/OrderRepository.class
+com/stockbrokerage/entity/UserWatchlist$UserWatchlistBuilder.class
 com/stockbrokerage/entity/Trade.class
