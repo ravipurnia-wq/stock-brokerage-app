@@ -61,23 +61,30 @@ public class StockSearchService {
         
         String searchQuery = query.trim().toUpperCase();
         
-        // Search in popular stocks first
-        for (Map.Entry<String, Map<String, String>> entry : POPULAR_STOCKS.entrySet()) {
-            String symbol = entry.getKey();
-            Map<String, String> info = entry.getValue();
-            
-            // Check if symbol matches or company name contains the search query
-            if (symbol.contains(searchQuery) || 
-                info.get("name").toUpperCase().contains(searchQuery)) {
+        // First try to search using Finnhub API for comprehensive results
+        List<Map<String, Object>> apiResults = searchStocksFromAPI(searchQuery, userId);
+        results.addAll(apiResults);
+        
+        // If API didn't return enough results, supplement with popular stocks
+        if (results.size() < 10) {
+            for (Map.Entry<String, Map<String, String>> entry : POPULAR_STOCKS.entrySet()) {
+                String symbol = entry.getKey();
+                Map<String, String> info = entry.getValue();
                 
-                Map<String, Object> result = new HashMap<>();
-                result.put("symbol", symbol);
-                result.put("companyName", info.get("name"));
-                result.put("exchange", info.get("exchange"));
-                result.put("sector", info.get("sector"));
-                result.put("isAdded", isStockAlreadyAddedByUser(symbol, userId));
-                
-                results.add(result);
+                // Check if symbol matches or company name contains the search query
+                if ((symbol.contains(searchQuery) || 
+                    info.get("name").toUpperCase().contains(searchQuery)) &&
+                    !isSymbolAlreadyInResults(symbol, results)) {
+                    
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("symbol", symbol);
+                    result.put("companyName", info.get("name"));
+                    result.put("exchange", info.get("exchange"));
+                    result.put("sector", info.get("sector"));
+                    result.put("isAdded", isStockAlreadyAddedByUser(symbol, userId));
+                    
+                    results.add(result);
+                }
             }
         }
         
@@ -92,8 +99,104 @@ public class StockSearchService {
             return symbolA.compareTo(symbolB);
         });
         
-        // Limit to top 10 results
-        return results.subList(0, Math.min(results.size(), 10));
+        // Limit to top 20 results for better coverage
+        return results.subList(0, Math.min(results.size(), 20));
+    }
+    
+    private List<Map<String, Object>> searchStocksFromAPI(String query, String userId) {
+        List<Map<String, Object>> results = new ArrayList<>();
+        
+        try {
+            // Use Finnhub symbol lookup API
+            String url = String.format("https://finnhub.io/api/v1/search?q=%s&token=%s", 
+                                     query, getApiToken());
+            
+            log.info("Searching stocks via Finnhub API for query: {} with URL: {}", query, url);
+            String response = restTemplate.getForObject(url, String.class);
+            
+            if (response != null) {
+                log.info("Finnhub API response for {}: {}", query, response);
+                JsonNode root = objectMapper.readTree(response);
+                JsonNode resultArray = root.path("result");
+                
+                if (resultArray.isArray()) {
+                    log.info("Found {} results from Finnhub for query: {}", resultArray.size(), query);
+                    
+                    for (JsonNode stockNode : resultArray) {
+                        String symbol = stockNode.path("symbol").asText();
+                        String description = stockNode.path("description").asText();
+                        String displaySymbol = stockNode.path("displaySymbol").asText();
+                        String type = stockNode.path("type").asText();
+                        
+                        log.debug("Processing stock: symbol={}, description={}, type={}", symbol, description, type);
+                        
+                        // Filter for stocks (Common Stock, ETF, etc.)
+                        if (symbol != null && !symbol.isEmpty() && 
+                            (type.equals("Common Stock") || type.equals("ETF") || type.isEmpty())) {
+                            
+                            Map<String, Object> result = new HashMap<>();
+                            result.put("symbol", symbol);
+                            result.put("companyName", description.isEmpty() ? symbol : description);
+                            result.put("exchange", extractExchange(symbol));
+                            result.put("sector", "Stock");
+                            result.put("isAdded", isStockAlreadyAddedByUser(symbol, userId));
+                            
+                            results.add(result);
+                            
+                            // Limit API results to avoid overwhelming
+                            if (results.size() >= 15) {
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    log.warn("No result array found in Finnhub response for query: {}", query);
+                }
+            } else {
+                log.warn("Null response from Finnhub API for query: {}", query);
+            }
+            
+            log.info("Found {} stocks from Finnhub API for query: {}", results.size(), query);
+            
+        } catch (Exception e) {
+            log.error("Failed to search stocks from Finnhub API for query {}: {}", query, e.getMessage(), e);
+            // If API fails, we'll fall back to popular stocks only
+        }
+        
+        return results;
+    }
+    
+    private String getApiToken() {
+        // Get from application properties through Finnhub service
+        try {
+            return "d2pame1r01qnhraqb5s0d2pame1r01qnhraqb5sg"; // Your Finnhub token
+        } catch (Exception e) {
+            log.warn("Could not get Finnhub API token: {}", e.getMessage());
+            return "";
+        }
+    }
+    
+    private String extractExchange(String symbol) {
+        // Basic logic to determine exchange based on symbol patterns
+        if (symbol.contains(".")) {
+            String suffix = symbol.substring(symbol.lastIndexOf(".") + 1);
+            switch (suffix.toUpperCase()) {
+                case "L": return "LSE";
+                case "TO": return "TSX";
+                case "V": return "TSXV";
+                case "AX": return "ASX";
+                case "T": return "TSE";
+                default: return "Other";
+            }
+        }
+        
+        // US stocks typically don't have suffixes
+        return symbol.length() <= 5 ? "NASDAQ/NYSE" : "Other";
+    }
+    
+    private boolean isSymbolAlreadyInResults(String symbol, List<Map<String, Object>> results) {
+        return results.stream()
+                .anyMatch(result -> symbol.equals(result.get("symbol")));
     }
     
     public UserWatchlist addStockToUserWatchlist(String symbol, String companyName, String exchange, String sector, String userId) {
