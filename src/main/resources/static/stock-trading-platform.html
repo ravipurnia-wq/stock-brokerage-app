@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Trading Platform</title>
+    <!-- PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=Abjs4rnESL6Z8m18riVyXR7RAhHM-q1py-zd3cT7rlWFTrlEioLW6Ax5a8w1NelDqRHHwpwWCIA3ZZ14&components=buttons&currency=USD"></script>
     <style>
         * {
             margin: 0;
@@ -128,6 +130,8 @@
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: calc(100vh - 120px);
         }
 
         .watchlist-sidebar {
@@ -647,6 +651,22 @@
             margin-top: 10px;
         }
 
+        .add-balance-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .add-balance-btn:hover {
+            background: #5a6fd8;
+        }
+
         @media (max-width: 768px) {
             .trading-dashboard {
                 grid-template-columns: 1fr;
@@ -802,7 +822,10 @@
                 <h3>💰 Your Portfolio</h3>
                 
                 <div class="balance-card">
-                    <div>Available Balance</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>Available Balance</div>
+                        <button class="add-balance-btn" onclick="openAddBalanceModal()">Add Balance</button>
+                    </div>
                     <div class="balance-amount" id="availableBalance">$0.00</div>
                 </div>
 
@@ -872,12 +895,63 @@
         </div>
     </div>
 
+    <!-- Add Balance Modal -->
+    <div id="addBalanceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddBalanceModal()">&times;</span>
+            <h3>Add Balance</h3>
+            <form id="addBalanceForm">
+                <div class="form-group">
+                    <label for="addBalanceAmount">Amount ($)</label>
+                    <input type="number" id="addBalanceAmount" step="0.01" min="0.01" max="10000" required>
+                </div>
+                <div class="form-group">
+                    <label for="addBalanceMethod">Payment Method</label>
+                    <select id="addBalanceMethod" required>
+                        <option value="">Select payment method</option>
+                        <option value="CREDIT_CARD">Credit Card</option>
+                        <option value="DEBIT_CARD">Debit Card</option>
+                        <option value="BANK_TRANSFER">Bank Transfer</option>
+                        <option value="PAYPAL">PayPal</option>
+                    </select>
+                </div>
+                
+                <div class="order-summary">
+                    <div class="order-summary-row">
+                        <span>Amount to Add:</span>
+                        <span id="summaryAmount">$0.00</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Transaction Fee (1%):</span>
+                        <span id="transactionFee">$0.00</span>
+                    </div>
+                    <div class="order-summary-row total">
+                        <span>Total Charge:</span>
+                        <span id="totalCharge">$0.00</span>
+                    </div>
+                </div>
+                
+                <!-- Payment Buttons -->
+                <div id="payment-buttons-container">
+                    <!-- PayPal Button Container (hidden by default) -->
+                    <div id="paypal-add-balance-container" style="margin-top: 20px; display: none;"></div>
+                    
+                    <!-- Regular Submit Button -->
+                    <button type="submit" class="btn" id="regular-add-balance">Add Balance</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let socket = null;
         let authToken = null;
         let currentUser = null;
         let priceHistory = {};
+        let cachedWatchlist = null;
+        let watchlistCacheTime = null;
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
         // API Base URL - relative since we're on the same server
         const API_BASE = '/api/v1';
@@ -1008,6 +1082,7 @@
             connectWebSocket();
             loadPortfolio();
             loadMarketData();
+            loadWatchlist();
         }
 
         function logout() {
@@ -1392,10 +1467,12 @@
                 // Show success message
                 showAlert(`Successfully added ${symbol} to your watchlist!`, 'success');
                 
-                // Refresh market data and watchlist to show the new stock
+                // Clear cache and refresh market data and watchlist to show the new stock
                 setTimeout(() => {
+                    cachedWatchlist = null;
+                    watchlistCacheTime = null;
                     loadMarketData();
-                    loadWatchlist();
+                    loadWatchlist(true); // Force refresh
                 }, 1000);
                 
                 // Hide search results and clear input
@@ -1481,31 +1558,85 @@
         });
 
         // Watchlist Management Functions
-        async function loadWatchlist() {
+        async function loadWatchlist(forceRefresh = false) {
             try {
-                const response = await fetch(`${API_BASE}/market/symbols`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
-                    }
+                console.log('Loading watchlist...');
+                
+                // Check cache first
+                const now = Date.now();
+                if (!forceRefresh && cachedWatchlist && watchlistCacheTime && 
+                    (now - watchlistCacheTime) < CACHE_DURATION) {
+                    console.log('Using cached watchlist');
+                    updateWatchlistDisplay(cachedWatchlist);
+                    return;
+                }
+                
+                // Don't require authentication for watchlist endpoint since it's public
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Add authentication if available
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+                
+                console.log('Fetching watchlist from:', `${API_BASE}/market/watchlist`);
+                console.log('Using headers:', headers);
+                
+                const response = await fetch(`${API_BASE}/market/watchlist`, {
+                    headers: headers
                 });
 
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+
                 if (!response.ok) {
-                    throw new Error('Failed to load watchlist');
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    throw new Error(`Failed to load watchlist: ${response.status} ${response.statusText} - ${errorText}`);
                 }
 
-                const symbols = await response.json();
-                updateWatchlistDisplay(symbols);
+                const watchlist = await response.json();
+                console.log('Loaded watchlist:', watchlist);
+                console.log('Watchlist type:', typeof watchlist);
+                console.log('Watchlist is array:', Array.isArray(watchlist));
+                
+                // Cache the results
+                cachedWatchlist = watchlist;
+                watchlistCacheTime = now;
+                console.log('Watchlist cached for 5 minutes');
+                
+                updateWatchlistDisplay(watchlist);
                 
             } catch (error) {
                 console.error('Error loading watchlist:', error);
+                // Show empty watchlist message on error
+                const watchlistItems = document.getElementById('watchlistItems');
+                if (watchlistItems) {
+                    watchlistItems.innerHTML = `
+                        <div class="watchlist-empty">
+                            No stocks in watchlist. Search and add stocks above.
+                        </div>
+                    `;
+                }
             }
         }
 
         function updateWatchlistDisplay(symbols) {
-            const watchlistItems = document.getElementById('watchlistItems');
+            console.log('updateWatchlistDisplay called with:', symbols);
+            console.log('Number of symbols:', symbols ? symbols.length : 'symbols is null/undefined');
             
-            if (symbols.length === 0) {
+            const watchlistItems = document.getElementById('watchlistItems');
+            console.log('watchlistItems element:', watchlistItems);
+            
+            if (!watchlistItems) {
+                console.error('watchlistItems element not found!');
+                return;
+            }
+            
+            if (!symbols || symbols.length === 0) {
+                console.log('No symbols to display, showing empty message');
                 watchlistItems.innerHTML = `
                     <div class="watchlist-empty">
                         No stocks in watchlist. Search and add stocks above.
@@ -1514,7 +1645,10 @@
                 return;
             }
 
-            const watchlistHtml = symbols.map(symbol => `
+            console.log('Creating watchlist HTML for', symbols.length, 'symbols');
+            const watchlistHtml = symbols.map(symbol => {
+                console.log('Processing symbol:', symbol);
+                return `
                 <div class="watchlist-item" data-symbol="${symbol.symbol}">
                     <div class="watchlist-item-info">
                         <div class="watchlist-item-symbol">${symbol.symbol}</div>
@@ -1530,9 +1664,12 @@
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
+            console.log('Setting watchlist HTML:', watchlistHtml);
             watchlistItems.innerHTML = watchlistHtml;
+            console.log('Watchlist HTML set, now fetching prices');
             
             // Fetch current prices for watchlist items
             symbols.forEach(symbol => {
@@ -1584,8 +1721,10 @@
                 // Show success message
                 showAlert(`Successfully removed ${symbol} from your watchlist!`, 'success');
                 
-                // Refresh watchlist and market data
-                loadWatchlist();
+                // Clear cache and refresh watchlist and market data
+                cachedWatchlist = null;
+                watchlistCacheTime = null;
+                loadWatchlist(true); // Force refresh
                 loadMarketData();
                 
             } catch (error) {
@@ -1789,6 +1928,271 @@
                 submitBtn.textContent = 'Place Buy Order';
             }
         }
+
+        // Add Balance Modal Functions
+        function openAddBalanceModal() {
+            if (!authToken) {
+                showAlert('Please login first to add balance', 'error');
+                return;
+            }
+
+            // Reset form
+            document.getElementById('addBalanceForm').reset();
+            updateBalanceSummary();
+            
+            // Show modal
+            document.getElementById('addBalanceModal').style.display = 'block';
+            
+            // Initialize payment method selection (no method selected by default)
+            const paypalContainer = document.getElementById('paypal-add-balance-container');
+            const regularButton = document.getElementById('regular-add-balance');
+            paypalContainer.style.display = 'none';
+            regularButton.style.display = 'none';
+        }
+
+        function closeAddBalanceModal() {
+            document.getElementById('addBalanceModal').style.display = 'none';
+            document.getElementById('addBalanceForm').reset();
+        }
+
+        function updateBalanceSummary() {
+            const amount = parseFloat(document.getElementById('addBalanceAmount').value) || 0;
+            const fee = amount * 0.01; // 1% transaction fee
+            const total = amount + fee;
+            
+            document.getElementById('summaryAmount').textContent = `$${amount.toFixed(2)}`;
+            document.getElementById('transactionFee').textContent = `$${fee.toFixed(2)}`;
+            document.getElementById('totalCharge').textContent = `$${total.toFixed(2)}`;
+        }
+
+        function togglePaymentMethod() {
+            const paymentMethod = document.getElementById('addBalanceMethod').value;
+            const paypalContainer = document.getElementById('paypal-add-balance-container');
+            const regularButton = document.getElementById('regular-add-balance');
+            
+            if (paymentMethod === 'PAYPAL') {
+                // Show PayPal button, hide regular button
+                paypalContainer.style.display = 'block';
+                regularButton.style.display = 'none';
+                
+                // Clear and render PayPal button
+                paypalContainer.innerHTML = '';
+                setTimeout(renderPayPalAddBalanceButton, 100);
+            } else if (paymentMethod === '') {
+                // No payment method selected - hide both
+                paypalContainer.style.display = 'none';
+                regularButton.style.display = 'none';
+            } else {
+                // Show regular button, hide PayPal button
+                paypalContainer.style.display = 'none';
+                regularButton.style.display = 'block';
+            }
+        }
+
+        function renderPayPalAddBalanceButton() {
+            const amount = parseFloat(document.getElementById('addBalanceAmount').value);
+            const paypalContainer = document.getElementById('paypal-add-balance-container');
+            const regularButton = document.getElementById('regular-add-balance');
+            
+            if (!amount || amount <= 0) {
+                // Show message in PayPal container if no amount
+                paypalContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Please enter an amount first</div>';
+                return;
+            }
+            
+            if (typeof paypal === 'undefined') {
+                // Show error message if PayPal SDK not loaded
+                paypalContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">PayPal SDK not loaded. Please try again.</div>';
+                return;
+            }
+            
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    const total = amount;
+                    
+                    if (total <= 0) {
+                        showAlert('Please enter a valid amount', 'error');
+                        return;
+                    }
+                    
+                    return actions.order.create({
+                        purchase_units: [{
+                            description: 'Stock Brokerage Account Balance Addition',
+                            amount: {
+                                currency_code: 'USD',
+                                value: total.toFixed(2)
+                            }
+                        }]
+                    });
+                },
+                
+                onApprove: function(data, actions) {
+                    return actions.order.capture().then(function(orderData) {
+                        console.log('Payment successful:', orderData);
+                        
+                        // Call backend to add balance
+                        return capturePayPalPayment(orderData.id, amount);
+                    });
+                },
+                
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    showAlert('Payment error occurred. Please try again.', 'error');
+                },
+                
+                onCancel: function(data) {
+                    console.log('Payment cancelled:', data);
+                    showAlert('Payment was cancelled', 'error');
+                },
+                
+                style: {
+                    layout: 'vertical',
+                    color: 'blue',
+                    shape: 'rect',
+                    height: 50,
+                    label: 'pay'
+                }
+            }).render('#paypal-add-balance-container');
+        }
+        
+        async function capturePayPalPayment(orderId, amount) {
+            try {
+                const response = await fetch(`${API_BASE}/wallet/paypal/capture-order/${orderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Successfully added $${amount.toFixed(2)} to your account via PayPal!`, 'success');
+                    closeAddBalanceModal();
+                    
+                    // Refresh portfolio data to show updated balance
+                    loadPortfolio();
+                    
+                    // Add message to feed
+                    addMessage(`💰 Balance added: $${amount.toFixed(2)} via PayPal`, 'portfolio-update');
+                } else {
+                    showAlert(result.message || 'Failed to process payment', 'error');
+                }
+            } catch (error) {
+                console.error('Error capturing PayPal payment:', error);
+                showAlert('Network error. Please try again.', 'error');
+            }
+        }
+
+        async function handleAddBalance(e) {
+            e.preventDefault();
+            
+            if (!authToken) {
+                showAlert('Please login first', 'error');
+                return;
+            }
+            
+            const amount = parseFloat(document.getElementById('addBalanceAmount').value);
+            const paymentMethod = document.getElementById('addBalanceMethod').value;
+            
+            if (!amount || amount <= 0) {
+                showAlert('Please enter a valid amount', 'error');
+                return;
+            }
+            
+            if (!paymentMethod) {
+                showAlert('Please select a payment method', 'error');
+                return;
+            }
+            
+            if (paymentMethod === 'PAYPAL') {
+                showAlert('Please use the PayPal button below to complete your payment', 'error');
+                return;
+            }
+            
+            try {
+                // Disable submit button
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Processing...';
+                
+                const response = await fetch(`${API_BASE}/wallet/add-balance`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        paymentMethod: paymentMethod
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Successfully added $${amount.toFixed(2)} to your account!`, 'success');
+                    closeAddBalanceModal();
+                    
+                    // Refresh portfolio data to show updated balance
+                    loadPortfolio();
+                    
+                    // Add message to feed
+                    addMessage(`💰 Balance added: $${amount.toFixed(2)} via ${paymentMethod}`, 'portfolio-update');
+                } else {
+                    showAlert(result.message || 'Failed to add balance', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error adding balance:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                // Re-enable submit button
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Balance';
+            }
+        }
+
+        // Add event listeners when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Existing event listeners...
+            
+            // Add balance form
+            const addBalanceForm = document.getElementById('addBalanceForm');
+            if (addBalanceForm) {
+                addBalanceForm.addEventListener('submit', handleAddBalance);
+            }
+            
+            // Update summary when amount changes
+            const amountInput = document.getElementById('addBalanceAmount');
+            if (amountInput) {
+                amountInput.addEventListener('input', function() {
+                    updateBalanceSummary();
+                    // Re-render PayPal button if PayPal is selected and modal is open
+                    const paymentMethod = document.getElementById('addBalanceMethod').value;
+                    if (paymentMethod === 'PAYPAL' && document.getElementById('addBalanceModal').style.display === 'block') {
+                        document.getElementById('paypal-add-balance-container').innerHTML = '';
+                        setTimeout(renderPayPalAddBalanceButton, 100);
+                    }
+                });
+            }
+            
+            // Handle payment method changes
+            const paymentMethodSelect = document.getElementById('addBalanceMethod');
+            if (paymentMethodSelect) {
+                paymentMethodSelect.addEventListener('change', togglePaymentMethod);
+            }
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const addBalanceModal = document.getElementById('addBalanceModal');
+                if (event.target === addBalanceModal) {
+                    closeAddBalanceModal();
+                }
+            });
+        });
     </script>
 </body>
 </html>

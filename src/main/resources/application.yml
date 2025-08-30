@@ -70,6 +70,18 @@ finnhub:
     websocket-url: wss://ws.finnhub.io
     rate-limit: 30 # 30 calls per second
 
+# PayPal Configuration
+paypal:
+  client:
+    id: Abjs4rnESL6Z8m18riVyXR7RAhHM-q1py-zd3cT7rlWFTrlEioLW6Ax5a8w1NelDqRHHwpwWCIA3ZZ14
+    secret: EEybL2FyfEUfpM13C8xjodpyK9-UocX4e_Ery1B1VfL3IdKpqfsEqKboI6YCtpJWnK4S1yh8D58Wg87g
+  mode: live
+  return:
+    success:
+      url: http://localhost:8080/payment-success
+    cancel:
+      url: http://localhost:8080/payment-cancelled
+
 logging:
   level:
     com.stockbrokerage: DEBUG

@@ -36,6 +36,25 @@ public class MarketDataController {
         }
     }
 
+    @GetMapping("/watchlist")
+    public ResponseEntity<?> getUserWatchlist(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        try {
+            String userId = userPrincipal != null ? userPrincipal.getId() : "default";
+            List<UserWatchlist> watchlist = stockSearchService.getUserWatchlist(userId);
+            
+            // If authenticated user has no watchlist, check for default watchlist items
+            if (watchlist.isEmpty() && userPrincipal != null) {
+                watchlist = stockSearchService.getUserWatchlist("default");
+            }
+            
+            return ResponseEntity.ok(watchlist);
+        } catch (Exception e) {
+            log.error("Error getting user watchlist", e);
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Failed to get watchlist", "message", e.getMessage()));
+        }
+    }
+
     @GetMapping("/data/{symbolId}")
     public ResponseEntity<?> getMarketData(@PathVariable String symbolId) {
         try {
