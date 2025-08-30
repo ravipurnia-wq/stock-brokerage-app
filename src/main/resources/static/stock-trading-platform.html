@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Trading Platform</title>
-    <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=Abjs4rnESL6Z8m18riVyXR7RAhHM-q1py-zd3cT7rlWFTrlEioLW6Ax5a8w1NelDqRHHwpwWCIA3ZZ14&components=buttons&currency=USD"></script>
+    <!-- PayPal SDK - Client ID should be set from backend -->
+    <script src="https://www.paypal.com/sdk/js?client-id=CLIENT_ID_PLACEHOLDER&components=buttons&currency=USD"></script>
+    
+    <!-- Chart.js for historical stock charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -563,6 +567,33 @@
             color: #666;
         }
 
+        .holding-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .sell-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .sell-btn:hover {
+            background: #c82333;
+        }
+
+        .sell-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         .alert {
             padding: 15px;
             border-radius: 8px;
@@ -665,6 +696,201 @@
 
         .add-balance-btn:hover {
             background: #5a6fd8;
+        }
+
+        /* Chart Modal Styles */
+        .chart-modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+        }
+
+        .chart-modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 1200px;
+            height: 85vh;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .chart-title {
+            color: #667eea;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .period-btn {
+            background: #f8f9ff;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .period-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .period-btn:hover {
+            background: #5a6fd8;
+            color: white;
+            border-color: #5a6fd8;
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+            height: calc(85vh - 120px);
+            min-height: 400px;
+        }
+
+        .chart-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .chart-error {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #dc3545;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .view-chart-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .view-chart-btn:hover {
+            background: #5a6fd8;
+        }
+
+        /* Financials Modal Styles */
+        .financials-section {
+            margin-bottom: 25px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .additional-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .additional-metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .additional-metric-label {
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .additional-metric-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .view-financials-btn {
+            background: #ff9500;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .view-financials-btn:hover {
+            background: #e68700;
         }
 
         @media (max-width: 768px) {
@@ -895,6 +1121,65 @@
         </div>
     </div>
 
+    <!-- Sell Stock Modal -->
+    <div id="sellModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSellModal()">&times;</span>
+            <h3>Sell Stock</h3>
+            <form id="sellForm">
+                <div class="form-group">
+                    <label for="sellSymbol">Stock Symbol</label>
+                    <input type="text" id="sellSymbol" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="sellCompanyName">Company Name</label>
+                    <input type="text" id="sellCompanyName" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="sellQuantity">Quantity to Sell</label>
+                    <input type="number" id="sellQuantity" min="1" value="1" required>
+                    <small id="maxQuantityText" style="color: #666; font-size: 12px;">Max: 0 shares</small>
+                </div>
+                <div class="form-group">
+                    <label for="sellOrderType">Order Type</label>
+                    <select id="sellOrderType" onchange="toggleSellPriceField()">
+                        <option value="MARKET">Market Order</option>
+                        <option value="LIMIT">Limit Order</option>
+                    </select>
+                </div>
+                <div class="form-group" id="sellPriceField" style="display: none;">
+                    <label for="sellPrice">Limit Price ($)</label>
+                    <input type="number" id="sellPrice" step="0.01" min="0.01">
+                </div>
+                
+                <div class="order-summary">
+                    <div class="order-summary-row">
+                        <span>Current Price:</span>
+                        <span id="sellCurrentPrice">--</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Quantity:</span>
+                        <span id="sellSummaryQuantity">1</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Estimated Value:</span>
+                        <span id="sellEstimatedValue">--</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Fees (0.1%):</span>
+                        <span id="sellEstimatedFees">--</span>
+                    </div>
+                    <div class="order-summary-row total">
+                        <span>Net Amount:</span>
+                        <span id="sellNetAmount">--</span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn" style="background: #dc3545;">Place Sell Order</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Add Balance Modal -->
     <div id="addBalanceModal" class="modal">
         <div class="modal-content">
@@ -940,6 +1225,107 @@
                     <button type="submit" class="btn" id="regular-add-balance">Add Balance</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Stock Chart Modal -->
+    <div id="chartModal" class="chart-modal">
+        <div class="chart-modal-content">
+            <div class="chart-header">
+                <h3 class="chart-title" id="chartTitle">Stock Chart - AAPL</h3>
+                <div class="chart-controls">
+                    <button class="period-btn active" data-period="1D">1D</button>
+                    <button class="period-btn" data-period="1W">1W</button>
+                    <button class="period-btn" data-period="1M">1M</button>
+                    <button class="period-btn" data-period="3M">3M</button>
+                    <button class="period-btn" data-period="1Y">1Y</button>
+                    <span class="close" onclick="closeChartModal()" style="margin-left: 20px;">&times;</span>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div id="chartLoading" class="chart-loading">
+                    Loading chart data...
+                </div>
+                <div id="chartError" class="chart-error" style="display: none;">
+                    Failed to load chart data. Please try again.
+                </div>
+                <canvas id="stockChart" style="display: none;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financials Modal -->
+    <div id="financialsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeFinancialsModal()">&times;</span>
+            <h3 id="financialsTitle">Company Financials - AAPL</h3>
+            
+            <div id="financialsContent">
+                <div id="financialsLoading" class="loading">
+                    Loading financial data...
+                </div>
+                <div id="financialsError" style="display: none; text-align: center; color: #dc3545; padding: 20px;">
+                    Failed to load financial data. Please try again.
+                </div>
+                
+                <div id="financialsData" style="display: none;">
+                    <!-- Key Metrics Section -->
+                    <div class="financials-section">
+                        <h4 style="color: #667eea; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">📊 Key Metrics</h4>
+                        <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div class="metric-card">
+                                <div class="metric-label">Market Cap</div>
+                                <div class="metric-value" id="marketCap">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">P/E Ratio (TTM)</div>
+                                <div class="metric-value" id="peRatio">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">P/B Ratio</div>
+                                <div class="metric-value" id="pbRatio">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">EPS (TTM)</div>
+                                <div class="metric-value" id="eps">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Dividend Yield</div>
+                                <div class="metric-value" id="dividendYield">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">ROE (TTM)</div>
+                                <div class="metric-value" id="roe">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">ROA (TTM)</div>
+                                <div class="metric-value" id="roa">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Beta</div>
+                                <div class="metric-value" id="beta">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">52W High</div>
+                                <div class="metric-value" id="weekHigh52">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">52W Low</div>
+                                <div class="metric-value" id="weekLow52">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Metrics Section -->
+                    <div class="financials-section">
+                        <h4 style="color: #667eea; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">📈 Additional Metrics</h4>
+                        <div class="additional-metrics" id="additionalMetrics">
+                            <!-- Additional metrics will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1284,6 +1670,11 @@
                         <div>$${holding.averagePrice?.toFixed(2) || '0.00'}</div>
                         <div class="holding-quantity">Avg Price</div>
                     </div>
+                    <div class="holding-actions">
+                        <button class="sell-btn" onclick="openSellModal('${holding.symbol}', '${holding.companyName || holding.symbol}', ${holding.quantity})">
+                            Sell
+                        </button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -1522,14 +1913,43 @@
                     <div class="stock-change" id="change-${symbol.symbol}">--</div>
                 `;
                 
+                // Add button container
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.display = 'flex';
+                buttonContainer.style.gap = '8px';
+                buttonContainer.style.marginTop = '10px';
+                
                 // Add buy button
                 const buyButton = document.createElement('button');
                 buyButton.className = 'buy-btn';
                 buyButton.textContent = 'Buy';
+                buyButton.style.flex = '1';
                 buyButton.onclick = function() {
                     openBuyModal(symbol.symbol, symbol.companyName);
                 };
-                stockCard.appendChild(buyButton);
+                
+                // Add view chart button
+                const chartButton = document.createElement('button');
+                chartButton.className = 'view-chart-btn';
+                chartButton.textContent = 'Chart';
+                chartButton.style.flex = '1';
+                chartButton.onclick = function() {
+                    openChartModal(symbol.symbol, symbol.companyName);
+                };
+                
+                // Add financials button
+                const financialsButton = document.createElement('button');
+                financialsButton.className = 'view-financials-btn';
+                financialsButton.textContent = 'Financials';
+                financialsButton.style.flex = '1';
+                financialsButton.onclick = function() {
+                    openFinancialsModal(symbol.symbol, symbol.companyName);
+                };
+                
+                buttonContainer.appendChild(buyButton);
+                buttonContainer.appendChild(chartButton);
+                buttonContainer.appendChild(financialsButton);
+                stockCard.appendChild(buttonContainer);
                 
                 marketGrid.appendChild(stockCard);
             });
@@ -1656,6 +2076,12 @@
                     </div>
                     <div class="watchlist-item-price" id="watchlist-price-${symbol.symbol}">--</div>
                     <div class="watchlist-item-actions">
+                        <button class="view-chart-btn" onclick="openChartModal('${symbol.symbol}', '${symbol.companyName}')" style="padding: 4px 8px; font-size: 10px;">
+                            Chart
+                        </button>
+                        <button class="view-financials-btn" onclick="openFinancialsModal('${symbol.symbol}', '${symbol.companyName}')" style="padding: 4px 8px; font-size: 10px;">
+                            Financials
+                        </button>
                         <button class="watchlist-buy-btn" onclick="openBuyModal('${symbol.symbol}', '${symbol.companyName}')">
                             Buy
                         </button>
@@ -1853,11 +2279,32 @@
                 priceInput.addEventListener('input', updateOrderSummary);
             }
             
+            // Sell form event listeners
+            const sellForm = document.getElementById('sellForm');
+            if (sellForm) {
+                sellForm.addEventListener('submit', handleSellOrder);
+            }
+            
+            // Update sell summary when quantity changes
+            const sellQuantityInput = document.getElementById('sellQuantity');
+            if (sellQuantityInput) {
+                sellQuantityInput.addEventListener('input', updateSellOrderSummary);
+            }
+            
+            const sellPriceInput = document.getElementById('sellPrice');
+            if (sellPriceInput) {
+                sellPriceInput.addEventListener('input', updateSellOrderSummary);
+            }
+            
             // Close modal when clicking outside
             window.addEventListener('click', function(event) {
-                const modal = document.getElementById('buyModal');
-                if (event.target === modal) {
+                const buyModal = document.getElementById('buyModal');
+                const sellModal = document.getElementById('sellModal');
+                if (event.target === buyModal) {
                     closeBuyModal();
+                }
+                if (event.target === sellModal) {
+                    closeSellModal();
                 }
             });
         });
@@ -1926,6 +2373,169 @@
                 const submitBtn = e.target.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Place Buy Order';
+            }
+        }
+
+        // Sell Modal Functions
+        let currentSellStock = null;
+        let maxAvailableShares = 0;
+
+        function openSellModal(symbol, companyName, availableShares) {
+            if (!authToken) {
+                showAlert('Please login first to sell stocks', 'error');
+                return;
+            }
+
+            currentSellStock = { symbol, companyName };
+            maxAvailableShares = availableShares;
+            
+            // Populate modal fields
+            document.getElementById('sellSymbol').value = symbol;
+            document.getElementById('sellCompanyName').value = companyName;
+            document.getElementById('sellQuantity').value = 1;
+            document.getElementById('sellQuantity').max = availableShares;
+            document.getElementById('maxQuantityText').textContent = `Max: ${availableShares} shares`;
+            document.getElementById('sellOrderType').value = 'MARKET';
+            document.getElementById('sellPriceField').style.display = 'none';
+            
+            // Get current price and update summary
+            updateSellOrderSummary();
+            
+            // Show modal
+            document.getElementById('sellModal').style.display = 'block';
+        }
+
+        function closeSellModal() {
+            document.getElementById('sellModal').style.display = 'none';
+            document.getElementById('sellForm').reset();
+            currentSellStock = null;
+            maxAvailableShares = 0;
+        }
+
+        function toggleSellPriceField() {
+            const orderType = document.getElementById('sellOrderType').value;
+            const priceField = document.getElementById('sellPriceField');
+            
+            if (orderType === 'LIMIT') {
+                priceField.style.display = 'block';
+                document.getElementById('sellPrice').required = true;
+            } else {
+                priceField.style.display = 'none';
+                document.getElementById('sellPrice').required = false;
+            }
+            
+            updateSellOrderSummary();
+        }
+
+        function updateSellOrderSummary() {
+            if (!currentSellStock) return;
+            
+            const quantity = parseInt(document.getElementById('sellQuantity').value) || 1;
+            const orderType = document.getElementById('sellOrderType').value;
+            const limitPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+            
+            // Validate quantity
+            if (quantity > maxAvailableShares) {
+                document.getElementById('sellQuantity').value = maxAvailableShares;
+                return;
+            }
+            
+            // Get current price from the market grid
+            const priceElement = document.getElementById(`price-${currentSellStock.symbol}`);
+            const currentPriceText = priceElement ? priceElement.textContent : '--';
+            const currentPrice = currentPriceText.startsWith('$') ? 
+                parseFloat(currentPriceText.substring(1)) : 0;
+            
+            // Update current price display
+            document.getElementById('sellCurrentPrice').textContent = currentPriceText;
+            document.getElementById('sellSummaryQuantity').textContent = quantity;
+            
+            if (currentPrice > 0) {
+                const usePrice = orderType === 'LIMIT' && limitPrice > 0 ? limitPrice : currentPrice;
+                const estimatedValue = usePrice * quantity;
+                const fees = estimatedValue * 0.001; // 0.1% fee
+                const netAmount = estimatedValue - fees;
+                
+                document.getElementById('sellEstimatedValue').textContent = `$${estimatedValue.toFixed(2)}`;
+                document.getElementById('sellEstimatedFees').textContent = `$${fees.toFixed(2)}`;
+                document.getElementById('sellNetAmount').textContent = `$${netAmount.toFixed(2)}`;
+            } else {
+                document.getElementById('sellEstimatedValue').textContent = '--';
+                document.getElementById('sellEstimatedFees').textContent = '--';
+                document.getElementById('sellNetAmount').textContent = '--';
+            }
+        }
+
+        async function handleSellOrder(e) {
+            e.preventDefault();
+            
+            if (!currentSellStock || !authToken) {
+                showAlert('Please login first', 'error');
+                return;
+            }
+            
+            const quantity = parseInt(document.getElementById('sellQuantity').value);
+            
+            if (quantity > maxAvailableShares) {
+                showAlert(`You can only sell up to ${maxAvailableShares} shares`, 'error');
+                return;
+            }
+            
+            const orderData = {
+                symbol: currentSellStock.symbol,
+                orderType: document.getElementById('sellOrderType').value,
+                side: 'SELL',
+                quantity: quantity
+            };
+            
+            // Add price for limit orders
+            if (orderData.orderType === 'LIMIT') {
+                const limitPrice = parseFloat(document.getElementById('sellPrice').value);
+                if (!limitPrice || limitPrice <= 0) {
+                    showAlert('Please enter a valid limit price', 'error');
+                    return;
+                }
+                orderData.price = limitPrice;
+            }
+            
+            try {
+                // Disable submit button
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Placing Order...';
+                
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Sell order placed successfully for ${orderData.quantity} shares of ${currentSellStock.symbol}!`, 'success');
+                    closeSellModal();
+                    
+                    // Refresh portfolio data
+                    loadPortfolio();
+                    
+                    // Add message to feed
+                    addMessage(`📋 Sell order placed: ${orderData.quantity} shares of ${currentSellStock.symbol}`, 'portfolio-update');
+                } else {
+                    showAlert(result.message || 'Failed to place sell order', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error placing sell order:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                // Re-enable submit button
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Place Sell Order';
             }
         }
 
@@ -2193,6 +2803,372 @@
                 }
             });
         });
+
+        // Chart Modal Functions
+        let currentChart = null;
+        let currentChartSymbol = null;
+        let currentChartPeriod = '1M';
+
+        function openChartModal(symbol, companyName) {
+            currentChartSymbol = symbol;
+            currentChartPeriod = '1M';
+            
+            // Update modal title
+            document.getElementById('chartTitle').textContent = `${symbol} - ${companyName || symbol}`;
+            
+            // Reset period buttons
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.period === currentChartPeriod) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Show modal
+            document.getElementById('chartModal').style.display = 'block';
+            
+            // Load chart data
+            loadChartData(symbol, currentChartPeriod);
+        }
+
+        function closeChartModal() {
+            document.getElementById('chartModal').style.display = 'none';
+            
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            currentChartSymbol = null;
+        }
+
+        async function loadChartData(symbol, period) {
+            const chartLoading = document.getElementById('chartLoading');
+            const chartError = document.getElementById('chartError');
+            const chartCanvas = document.getElementById('stockChart');
+            
+            // Show loading state
+            chartLoading.style.display = 'flex';
+            chartError.style.display = 'none';
+            chartCanvas.style.display = 'none';
+            
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/historical/chart/${symbol}?period=${period}`, {
+                    headers: {
+                        'Authorization': authToken ? `Bearer ${authToken}` : '',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const chartData = await response.json();
+                
+                if (!chartData.data || chartData.data.length === 0) {
+                    throw new Error('No data available for this symbol');
+                }
+                
+                // Hide loading, show chart
+                chartLoading.style.display = 'none';
+                chartCanvas.style.display = 'block';
+                
+                // Create the chart
+                createStockChart(chartData);
+                
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+                
+                // Show error state
+                chartLoading.style.display = 'none';
+                chartError.style.display = 'flex';
+                chartError.textContent = `Failed to load chart data: ${error.message}`;
+            }
+        }
+
+        function createStockChart(chartData) {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            
+            // Prepare data for Chart.js
+            const labels = [];
+            const prices = [];
+            const volumes = [];
+            
+            chartData.data.forEach(point => {
+                labels.push(new Date(point.timestamp));
+                prices.push(parseFloat(point.close));
+                volumes.push(point.volume);
+            });
+            
+            // Determine time unit based on period
+            let timeUnit = 'day';
+            const period = currentChartPeriod;
+            if (period === '1D') timeUnit = 'hour';
+            else if (period === '1W') timeUnit = 'day';
+            else if (period === '1M' || period === '3M') timeUnit = 'day';
+            else if (period === '1Y') timeUnit = 'month';
+            
+            // Create gradient for price line
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.4)');
+            gradient.addColorStop(1, 'rgba(102, 126, 234, 0.05)');
+            
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${chartData.symbol} Price`,
+                        data: prices,
+                        borderColor: '#667eea',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#667eea',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#667eea',
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return new Date(context[0].parsed.x).toLocaleString();
+                                },
+                                label: function(context) {
+                                    return `Price: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: timeUnit
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: '#666666'
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: '#666666',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 8
+                        }
+                    }
+                }
+            });
+        }
+
+        // Period button event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners for period buttons
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (currentChartSymbol) {
+                        // Update active button
+                        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        // Update current period and reload data
+                        currentChartPeriod = this.dataset.period;
+                        loadChartData(currentChartSymbol, currentChartPeriod);
+                    }
+                });
+            });
+            
+            // Close chart modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const chartModal = document.getElementById('chartModal');
+                const financialsModal = document.getElementById('financialsModal');
+                if (event.target === chartModal) {
+                    closeChartModal();
+                }
+                if (event.target === financialsModal) {
+                    closeFinancialsModal();
+                }
+            });
+        });
+
+        // Financials Modal Functions
+        let currentFinancialsSymbol = null;
+
+        function openFinancialsModal(symbol, companyName) {
+            currentFinancialsSymbol = symbol;
+            
+            // Update modal title
+            document.getElementById('financialsTitle').textContent = `Company Financials - ${symbol} ${companyName ? '(' + companyName + ')' : ''}`;
+            
+            // Show modal
+            document.getElementById('financialsModal').style.display = 'block';
+            
+            // Load financial data
+            loadFinancialData(symbol);
+        }
+
+        function closeFinancialsModal() {
+            document.getElementById('financialsModal').style.display = 'none';
+            currentFinancialsSymbol = null;
+        }
+
+        async function loadFinancialData(symbol) {
+            const financialsLoading = document.getElementById('financialsLoading');
+            const financialsError = document.getElementById('financialsError');
+            const financialsData = document.getElementById('financialsData');
+            
+            // Show loading state
+            financialsLoading.style.display = 'block';
+            financialsError.style.display = 'none';
+            financialsData.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/financials/basic/${symbol}`, {
+                    headers: {
+                        'Authorization': authToken ? `Bearer ${authToken}` : '',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.metric || Object.keys(data.metric).length === 0) {
+                    throw new Error('No financial data available for this symbol');
+                }
+                
+                // Hide loading, show data
+                financialsLoading.style.display = 'none';
+                financialsData.style.display = 'block';
+                
+                // Populate financial data
+                populateFinancialData(data);
+                
+            } catch (error) {
+                console.error('Error loading financial data:', error);
+                
+                // Show error state
+                financialsLoading.style.display = 'none';
+                financialsError.style.display = 'block';
+                financialsError.textContent = `Failed to load financial data: ${error.message}`;
+            }
+        }
+
+        function populateFinancialData(data) {
+            const metric = data.metric;
+            
+            // Populate key metrics
+            document.getElementById('marketCap').textContent = formatNumber(metric.marketCapitalization, 'currency');
+            document.getElementById('peRatio').textContent = formatNumber(metric.peTTM, 'decimal');
+            document.getElementById('pbRatio').textContent = formatNumber(metric.pb, 'decimal');
+            document.getElementById('eps').textContent = formatNumber(metric.epsTTM, 'currency');
+            document.getElementById('dividendYield').textContent = formatNumber(metric.currentDividendYieldTTM, 'percent');
+            document.getElementById('roe').textContent = formatNumber(metric.roeTTM, 'percent');
+            document.getElementById('roa').textContent = formatNumber(metric.roaTTM, 'percent');
+            document.getElementById('beta').textContent = formatNumber(metric.beta, 'decimal');
+            document.getElementById('weekHigh52').textContent = formatNumber(metric['52WeekHigh'], 'currency');
+            document.getElementById('weekLow52').textContent = formatNumber(metric['52WeekLow'], 'currency');
+            
+            // Populate additional metrics
+            const additionalMetrics = document.getElementById('additionalMetrics');
+            additionalMetrics.innerHTML = '';
+            
+            const additionalMetricsList = [
+                { key: 'grossMarginTTM', label: 'Gross Margin (TTM)', format: 'percent' },
+                { key: 'operatingMarginTTM', label: 'Operating Margin (TTM)', format: 'percent' },
+                { key: 'netProfitMarginTTM', label: 'Net Profit Margin (TTM)', format: 'percent' },
+                { key: 'currentRatioAnnual', label: 'Current Ratio', format: 'decimal' },
+                { key: 'quickRatioAnnual', label: 'Quick Ratio', format: 'decimal' },
+                { key: 'revenueGrowthTTMYoy', label: 'Revenue Growth (YoY)', format: 'percent' },
+                { key: 'epsGrowthTTMYoy', label: 'EPS Growth (YoY)', format: 'percent' },
+                { key: 'bookValuePerShareAnnual', label: 'Book Value Per Share', format: 'currency' },
+                { key: 'cashFlowPerShareTTM', label: 'Cash Flow Per Share (TTM)', format: 'currency' },
+                { key: 'revenuePerShareTTM', label: 'Revenue Per Share (TTM)', format: 'currency' }
+            ];
+            
+            additionalMetricsList.forEach(item => {
+                if (metric[item.key] !== undefined && metric[item.key] !== null) {
+                    const metricItem = document.createElement('div');
+                    metricItem.className = 'additional-metric-item';
+                    metricItem.innerHTML = `
+                        <div class="additional-metric-label">${item.label}</div>
+                        <div class="additional-metric-value">${formatNumber(metric[item.key], item.format)}</div>
+                    `;
+                    additionalMetrics.appendChild(metricItem);
+                }
+            });
+        }
+
+        function formatNumber(value, format) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return '--';
+            }
+            
+            const num = parseFloat(value);
+            
+            switch (format) {
+                case 'currency':
+                    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+                    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+                    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+                    if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
+                    return `$${num.toFixed(2)}`;
+                    
+                case 'percent':
+                    return `${num.toFixed(2)}%`;
+                    
+                case 'decimal':
+                    return num.toFixed(2);
+                    
+                default:
+                    return num.toString();
+            }
+        }
     </script>
 </body>
 </html>

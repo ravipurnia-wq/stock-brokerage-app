@@ -12,6 +12,12 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -62,6 +68,42 @@ public class FinnhubApiService {
             this.openPrice = openPrice;
             this.previousClose = previousClose;
             this.timestamp = System.currentTimeMillis();
+        }
+    }
+    
+    public static class HistoricalData {
+        public final List<CandleData> candles;
+        public final String symbol;
+        public final String resolution;
+        public final long fromTimestamp;
+        public final long toTimestamp;
+        
+        public HistoricalData(List<CandleData> candles, String symbol, String resolution, 
+                            long fromTimestamp, long toTimestamp) {
+            this.candles = candles;
+            this.symbol = symbol;
+            this.resolution = resolution;
+            this.fromTimestamp = fromTimestamp;
+            this.toTimestamp = toTimestamp;
+        }
+    }
+    
+    public static class CandleData {
+        public final BigDecimal open;
+        public final BigDecimal high;
+        public final BigDecimal low;
+        public final BigDecimal close;
+        public final long volume;
+        public final long timestamp;
+        
+        public CandleData(BigDecimal open, BigDecimal high, BigDecimal low, BigDecimal close,
+                         long volume, long timestamp) {
+            this.open = open;
+            this.high = high;
+            this.low = low;
+            this.close = close;
+            this.volume = volume;
+            this.timestamp = timestamp;
         }
     }
     
@@ -186,6 +228,125 @@ public class FinnhubApiService {
     }
     
     /**
+     * Get historical stock data for charts
+     */
+    public HistoricalData getHistoricalData(String symbol, String resolution, long fromTimestamp, long toTimestamp) {
+        try {
+            // Rate limiting
+            enforceRateLimit();
+            
+            String url = String.format("%s/stock/candle?symbol=%s&resolution=%s&from=%d&to=%d&token=%s", 
+                    baseUrl, symbol.toUpperCase(), resolution, fromTimestamp, toTimestamp, apiToken);
+            
+            log.debug("Fetching historical data for {} with resolution {} from {} to {}", 
+                    symbol, resolution, fromTimestamp, toTimestamp);
+            
+            String response = restTemplate.getForObject(url, String.class);
+            
+            if (response != null) {
+                JsonNode jsonNode = objectMapper.readTree(response);
+                
+                // Check if the response contains valid data and no error
+                if (jsonNode.has("s") && "ok".equals(jsonNode.get("s").asText()) && 
+                    jsonNode.has("c") && jsonNode.get("c").isArray()) {
+                    
+                    List<CandleData> candles = parseHistoricalResponse(jsonNode);
+                    
+                    log.info("Retrieved {} historical data points for {} ({})", candles.size(), symbol, resolution);
+                    return new HistoricalData(candles, symbol, resolution, fromTimestamp, toTimestamp);
+                } else {
+                    log.warn("Invalid historical data response for {}: {}", symbol, response);
+                }
+            }
+            
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 429) {
+                log.warn("Rate limit exceeded for historical data. Symbol: {}", symbol);
+            } else {
+                log.error("HTTP error fetching historical data for {}: {}", symbol, e.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Error fetching historical data for {}: {}", symbol, e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get historical data with common time ranges
+     */
+    public HistoricalData getHistoricalData(String symbol, String period) {
+        long toTimestamp = Instant.now().getEpochSecond();
+        long fromTimestamp;
+        String resolution;
+        
+        switch (period.toUpperCase()) {
+            case "1D":
+                fromTimestamp = toTimestamp - (24 * 60 * 60); // 1 day ago
+                resolution = "5"; // 5-minute intervals
+                break;
+            case "1W":
+                fromTimestamp = toTimestamp - (7 * 24 * 60 * 60); // 1 week ago
+                resolution = "15"; // 15-minute intervals
+                break;
+            case "1M":
+                fromTimestamp = toTimestamp - (30L * 24 * 60 * 60); // 1 month ago
+                resolution = "60"; // 1-hour intervals
+                break;
+            case "3M":
+                fromTimestamp = toTimestamp - (90L * 24 * 60 * 60); // 3 months ago
+                resolution = "D"; // Daily intervals
+                break;
+            case "1Y":
+                fromTimestamp = toTimestamp - (365L * 24 * 60 * 60); // 1 year ago
+                resolution = "D"; // Daily intervals
+                break;
+            default:
+                log.warn("Unknown period: {}. Using 1 month default.", period);
+                fromTimestamp = toTimestamp - (30L * 24 * 60 * 60);
+                resolution = "D";
+        }
+        
+        return getHistoricalData(symbol, resolution, fromTimestamp, toTimestamp);
+    }
+    
+    private List<CandleData> parseHistoricalResponse(JsonNode jsonNode) {
+        List<CandleData> candles = new ArrayList<>();
+        
+        JsonNode openArray = jsonNode.get("o");
+        JsonNode highArray = jsonNode.get("h");
+        JsonNode lowArray = jsonNode.get("l");
+        JsonNode closeArray = jsonNode.get("c");
+        JsonNode volumeArray = jsonNode.get("v");
+        JsonNode timestampArray = jsonNode.get("t");
+        
+        if (openArray != null && openArray.isArray()) {
+            int size = openArray.size();
+            
+            for (int i = 0; i < size; i++) {
+                try {
+                    BigDecimal open = BigDecimal.valueOf(openArray.get(i).asDouble())
+                            .setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal high = BigDecimal.valueOf(highArray.get(i).asDouble())
+                            .setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal low = BigDecimal.valueOf(lowArray.get(i).asDouble())
+                            .setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal close = BigDecimal.valueOf(closeArray.get(i).asDouble())
+                            .setScale(2, RoundingMode.HALF_UP);
+                    long volume = volumeArray.get(i).asLong();
+                    long timestamp = timestampArray.get(i).asLong();
+                    
+                    candles.add(new CandleData(open, high, low, close, volume, timestamp));
+                } catch (Exception e) {
+                    log.warn("Error parsing candle data at index {}: {}", i, e.getMessage());
+                }
+            }
+        }
+        
+        return candles;
+    }
+
+    /**
      * Clear cache for testing or manual refresh
      */
     public void clearCache() {
@@ -200,5 +361,67 @@ public class FinnhubApiService {
     public String getCacheStats() {
         return String.format("Cache size: %d symbols, Rate limit: %d calls/sec", 
                            priceCache.size(), rateLimit);
+    }
+    
+    /**
+     * Company Basic Financials data class
+     */
+    public static class BasicFinancials {
+        public final JsonNode metric;
+        public final JsonNode series;
+        public final String metricType;
+        public final String symbol;
+        
+        public BasicFinancials(JsonNode metric, JsonNode series, String metricType, String symbol) {
+            this.metric = metric;
+            this.series = series;
+            this.metricType = metricType;
+            this.symbol = symbol;
+        }
+    }
+    
+    /**
+     * Get basic financial metrics for a company
+     */
+    public BasicFinancials getBasicFinancials(String symbol) {
+        try {
+            // Rate limiting
+            enforceRateLimit();
+            
+            String url = String.format("%s/stock/metric?symbol=%s&metric=all&token=%s", 
+                    baseUrl, symbol.toUpperCase(), apiToken);
+            
+            log.debug("Fetching basic financials for {} from Finnhub", symbol);
+            String response = restTemplate.getForObject(url, String.class);
+            
+            if (response != null) {
+                JsonNode jsonNode = objectMapper.readTree(response);
+                
+                // Check if the response contains valid data
+                if (jsonNode.has("metric") && jsonNode.get("metric").isObject()) {
+                    JsonNode metric = jsonNode.get("metric");
+                    JsonNode series = jsonNode.has("series") ? jsonNode.get("series") : null;
+                    String metricType = jsonNode.has("metricType") ? jsonNode.get("metricType").asText() : "all";
+                    
+                    log.info("Retrieved basic financials for {}", symbol);
+                    return new BasicFinancials(metric, series, metricType, symbol);
+                } else {
+                    log.warn("Invalid financials response for symbol {}: {}", symbol, response);
+                }
+            }
+            
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 429) {
+                log.warn("Rate limit exceeded for basic financials. Symbol: {}", symbol);
+            } else {
+                log.error("HTTP error fetching basic financials for {}: {}", symbol, e.getMessage());
+            }
+        } catch (ResourceAccessException e) {
+            log.error("Network error fetching basic financials for {}: {}", symbol, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error fetching basic financials for {} from Finnhub: {}", symbol, e.getMessage());
+        }
+        
+        return null;
     }
 }
