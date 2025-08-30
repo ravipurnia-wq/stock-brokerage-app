@@ -141,3 +141,6 @@ The application follows a microservices-inspired architecture with:
 - All monetary values use BigDecimal for precision
 - Comprehensive error handling and logging
 - RESTful API design with proper HTTP status codes
+- screenshot:
+
+- <img width="1683" height="936" alt="image" src="https://github.com/user-attachments/assets/a0e065d9-db5a-49f1-bb5a-bd2b2d75b3d1" />
