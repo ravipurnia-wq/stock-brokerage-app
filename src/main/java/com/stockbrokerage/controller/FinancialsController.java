@@ -103,4 +103,37 @@ public class FinancialsController {
                 ));
         }
     }
+
+    @GetMapping("/reported/{symbol}")
+    public ResponseEntity<?> getReportedFinancials(@PathVariable String symbol) {
+        try {
+            log.debug("Fetching reported financials for symbol: {}", symbol);
+            
+            FinnhubApiService.ReportedFinancials reportedFinancials = finnhubApiService.getReportedFinancials(symbol);
+            
+            if (reportedFinancials == null || reportedFinancials.data == null) {
+                return ResponseEntity.ok(Map.of(
+                    "symbol", symbol,
+                    "data", Map.of(),
+                    "count", 0,
+                    "message", "No reported financial data available for this symbol"
+                ));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "symbol", reportedFinancials.symbol,
+                "count", reportedFinancials.count,
+                "data", reportedFinancials.data
+            ));
+
+        } catch (Exception e) {
+            log.error("Error fetching reported financials for symbol: {}", symbol, e);
+            return ResponseEntity.badRequest()
+                .body(Map.of(
+                    "error", "Failed to fetch reported financial data",
+                    "message", e.getMessage(),
+                    "symbol", symbol
+                ));
+        }
+    }
 }

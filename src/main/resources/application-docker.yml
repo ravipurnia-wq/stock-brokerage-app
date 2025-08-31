@@ -1,0 +1,125 @@
+# Docker/Production Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: stock-brokerage-app
+  
+  main:
+    allow-circular-references: true
+
+  # MongoDB Configuration for Docker
+  data:
+    mongodb:
+      host: ${SPRING_DATA_MONGODB_HOST:mongodb}
+      port: ${SPRING_DATA_MONGODB_PORT:27017}
+      database: ${SPRING_DATA_MONGODB_DATABASE:stock_brokerage}
+      username: ${SPRING_DATA_MONGODB_USERNAME:admin}
+      password: ${SPRING_DATA_MONGODB_PASSWORD:stockbrokerage123}
+      authentication-database: ${SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE:admin}
+      auto-index-creation: true
+
+  # Redis Configuration for Docker
+  redis:
+    host: ${SPRING_REDIS_HOST:redis}
+    port: ${SPRING_REDIS_PORT:6379}
+    password: ${SPRING_REDIS_PASSWORD:redis123}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+  # Kafka Configuration for Docker
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+    consumer:
+      group-id: stock-brokerage-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.stockbrokerage.events"
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+  expiration: 86400000 # 24 hours in milliseconds
+
+# Application Configuration
+app:
+  trading:
+    market-hours:
+      start: "09:30"
+      end: "16:00"
+    fees:
+      per-trade: 0.99
+      percentage: 0.001
+  
+  rate-limit:
+    orders-per-minute: 10
+    api-calls-per-minute: 100
+
+# Finnhub API Configuration
+finnhub:
+  api:
+    base-url: https://finnhub.io/api/v1
+    token: ${FINNHUB_API_TOKEN}
+    websocket-url: wss://ws.finnhub.io
+    rate-limit: 30
+
+# PayPal Configuration
+paypal:
+  client:
+    id: ${PAYPAL_CLIENT_ID}
+    secret: ${PAYPAL_CLIENT_SECRET}
+  mode: ${PAYPAL_MODE:sandbox}
+  return:
+    success:
+      url: ${PAYPAL_SUCCESS_URL:http://localhost/payment-success}
+    cancel:
+      url: ${PAYPAL_CANCEL_URL:http://localhost/payment-cancelled}
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    mongo:
+      enabled: true
+    redis:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.stockbrokerage: ${LOGGING_LEVEL_COM_STOCKBROKERAGE:INFO}
+    org.springframework.kafka: WARN
+    org.springframework.security: WARN
+    org.mongodb.driver: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/stock-brokerage.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30

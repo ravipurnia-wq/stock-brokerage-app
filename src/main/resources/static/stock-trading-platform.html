@@ -893,6 +893,22 @@
             background: #e68700;
         }
 
+        .view-sec-btn {
+            background: #6f42c1;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .view-sec-btn:hover {
+            background: #5a32a3;
+        }
+
         @media (max-width: 768px) {
             .trading-dashboard {
                 grid-template-columns: 1fr;
@@ -1322,6 +1338,42 @@
                         <h4 style="color: #667eea; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">📈 Additional Metrics</h4>
                         <div class="additional-metrics" id="additionalMetrics">
                             <!-- Additional metrics will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEC Filings Modal -->
+    <div id="secFilingsModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <span class="close" onclick="closeSecFilingsModal()">&times;</span>
+            <h3 id="secFilingsTitle">SEC Filings - AAPL</h3>
+            
+            <div id="secFilingsContent">
+                <div id="secFilingsLoading" class="loading">
+                    Loading SEC filing data...
+                </div>
+                <div id="secFilingsError" style="display: none; text-align: center; color: #dc3545; padding: 20px;">
+                    Failed to load SEC filing data. Please try again.
+                </div>
+                
+                <div id="secFilingsData" style="display: none;">
+                    <!-- SEC Filing Summary -->
+                    <div class="financials-section">
+                        <h4 style="color: #6f42c1; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">📄 Recent SEC Filings</h4>
+                        <div id="filingsSummary" style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%); border-radius: 10px; border-left: 4px solid #6f42c1;">
+                            <div style="font-weight: bold; color: #333; margin-bottom: 10px;">Latest Filing Information</div>
+                            <div id="latestFilingInfo">--</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Financial Data from SEC Filings -->
+                    <div class="financials-section">
+                        <h4 style="color: #6f42c1; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">💰 Key Financial Data</h4>
+                        <div class="additional-metrics" id="secFilingsMetrics">
+                            <!-- SEC filing metrics will be populated here -->
                         </div>
                     </div>
                 </div>
@@ -1946,9 +1998,19 @@
                     openFinancialsModal(symbol.symbol, symbol.companyName);
                 };
                 
+                // Add SEC filings button
+                const secButton = document.createElement('button');
+                secButton.className = 'view-sec-btn';
+                secButton.textContent = 'SEC Filings';
+                secButton.style.flex = '1';
+                secButton.onclick = function() {
+                    openSecFilingsModal(symbol.symbol, symbol.companyName);
+                };
+                
                 buttonContainer.appendChild(buyButton);
                 buttonContainer.appendChild(chartButton);
                 buttonContainer.appendChild(financialsButton);
+                buttonContainer.appendChild(secButton);
                 stockCard.appendChild(buttonContainer);
                 
                 marketGrid.appendChild(stockCard);
@@ -2081,6 +2143,9 @@
                         </button>
                         <button class="view-financials-btn" onclick="openFinancialsModal('${symbol.symbol}', '${symbol.companyName}')" style="padding: 4px 8px; font-size: 10px;">
                             Financials
+                        </button>
+                        <button class="view-sec-btn" onclick="openSecFilingsModal('${symbol.symbol}', '${symbol.companyName}')" style="padding: 4px 8px; font-size: 10px;">
+                            SEC
                         </button>
                         <button class="watchlist-buy-btn" onclick="openBuyModal('${symbol.symbol}', '${symbol.companyName}')">
                             Buy
@@ -3065,20 +3130,46 @@
             financialsData.style.display = 'none';
             
             try {
-                const response = await fetch(`${API_BASE}/financials/basic/${symbol}`, {
-                    headers: {
-                        'Authorization': authToken ? `Bearer ${authToken}` : '',
-                        'Content-Type': 'application/json'
-                    }
-                });
+                // Fetch both basic and reported financials in parallel
+                const [basicResponse, reportedResponse] = await Promise.all([
+                    fetch(`${API_BASE}/financials/basic/${symbol}`, {
+                        headers: {
+                            'Authorization': authToken ? `Bearer ${authToken}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE}/financials/reported/${symbol}`, {
+                        headers: {
+                            'Authorization': authToken ? `Bearer ${authToken}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                ]);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                if (!basicResponse.ok) {
+                    throw new Error(`HTTP ${basicResponse.status} for basic financials`);
                 }
                 
-                const data = await response.json();
+                const basicData = await basicResponse.json();
+                let reportedData = null;
                 
-                if (!data.metric || Object.keys(data.metric).length === 0) {
+                // Reported financials are optional - don't fail if they're not available
+                if (reportedResponse.ok) {
+                    try {
+                        reportedData = await reportedResponse.json();
+                        console.log('Reported financials fetched successfully:', {
+                            symbol: reportedData?.symbol,
+                            count: reportedData?.count,
+                            hasData: !!reportedData?.data
+                        });
+                    } catch (e) {
+                        console.warn('Could not parse reported financials:', e);
+                    }
+                } else {
+                    console.warn('Reported financials request failed:', reportedResponse.status, reportedResponse.statusText);
+                }
+                
+                if (!basicData.metric || Object.keys(basicData.metric).length === 0) {
                     throw new Error('No financial data available for this symbol');
                 }
                 
@@ -3086,8 +3177,8 @@
                 financialsLoading.style.display = 'none';
                 financialsData.style.display = 'block';
                 
-                // Populate financial data
-                populateFinancialData(data);
+                // Populate financial data with both basic and reported data
+                populateFinancialData(basicData, reportedData);
                 
             } catch (error) {
                 console.error('Error loading financial data:', error);
@@ -3099,7 +3190,7 @@
             }
         }
 
-        function populateFinancialData(data) {
+        function populateFinancialData(data, reportedData = null) {
             const metric = data.metric;
             
             // Populate key metrics
@@ -3142,6 +3233,93 @@
                     additionalMetrics.appendChild(metricItem);
                 }
             });
+            
+            // Add reported financials data if available
+            console.log('Reported data check:', {
+                hasReportedData: !!reportedData,
+                hasData: reportedData && reportedData.data,
+                count: reportedData?.count,
+                dataLength: reportedData?.data?.length
+            });
+            
+            if (reportedData && reportedData.data && reportedData.count > 0) {
+                // Add a separator for reported metrics
+                const separator = document.createElement('div');
+                separator.style.cssText = 'grid-column: 1 / -1; height: 2px; background: linear-gradient(90deg, #667eea, transparent); margin: 10px 0; border-radius: 1px;';
+                additionalMetrics.appendChild(separator);
+                
+                // Add section header
+                const sectionHeader = document.createElement('div');
+                sectionHeader.style.cssText = 'grid-column: 1 / -1; font-weight: bold; color: #667eea; margin-bottom: 10px; font-size: 14px;';
+                sectionHeader.textContent = '📊 Recent SEC Filing Data';
+                additionalMetrics.appendChild(sectionHeader);
+                
+                // Get the most recent filing (first item in the array)
+                const latestFiling = reportedData.data[0];
+                if (latestFiling && latestFiling.report) {
+                    const report = latestFiling.report;
+                    
+                    // Helper function to find value by concept in financial data
+                    const findValueByConcept = (dataArray, conceptKeywords) => {
+                        if (!dataArray || !Array.isArray(dataArray)) return null;
+                        
+                        for (const item of dataArray) {
+                            if (item.concept && item.value !== null && item.value !== undefined) {
+                                const concept = item.concept.toLowerCase();
+                                const label = (item.label || '').toLowerCase();
+                                
+                                // Check if any keyword matches the concept or label
+                                if (conceptKeywords.some(keyword => 
+                                    concept.includes(keyword.toLowerCase()) || 
+                                    label.includes(keyword.toLowerCase()))) {
+                                    return item.value;
+                                }
+                            }
+                        }
+                        return null;
+                    };
+                    
+                    // Define key metrics to display from reported financials
+                    const reportedMetrics = [
+                        { section: 'bs', concepts: ['assets', 'totalassets'], label: 'Total Assets', format: 'currency' },
+                        { section: 'bs', concepts: ['liabilities', 'totalliabilities'], label: 'Total Liabilities', format: 'currency' },
+                        { section: 'bs', concepts: ['equity', 'stockholdersequity', 'shareholdersequity'], label: 'Shareholders Equity', format: 'currency' },
+                        { section: 'ic', concepts: ['revenue', 'netsales', 'revenues'], label: 'Total Revenue', format: 'currency' },
+                        { section: 'ic', concepts: ['operatingincome', 'incomeoperations'], label: 'Operating Income', format: 'currency' },
+                        { section: 'ic', concepts: ['netincome', 'netincomeloss'], label: 'Net Income', format: 'currency' },
+                        { section: 'cf', concepts: ['operatingcashflow', 'netcashoperating'], label: 'Operating Cash Flow', format: 'currency' },
+                        { section: 'bs', concepts: ['cashandcashequivalents', 'cash'], label: 'Cash and Equivalents', format: 'currency' }
+                    ];
+                    
+                    reportedMetrics.forEach(item => {
+                        const sectionData = report[item.section];
+                        const value = findValueByConcept(sectionData, item.concepts);
+                        
+                        if (value !== null && value !== undefined && !isNaN(value)) {
+                            const metricItem = document.createElement('div');
+                            metricItem.className = 'additional-metric-item';
+                            metricItem.style.borderLeft = '3px solid #ff9500';
+                            metricItem.innerHTML = `
+                                <div class="additional-metric-label">${item.label}</div>
+                                <div class="additional-metric-value">${formatNumber(value, item.format)}</div>
+                            `;
+                            additionalMetrics.appendChild(metricItem);
+                        }
+                    });
+                    
+                    // Add filing date if available
+                    if (latestFiling.filedDate) {
+                        const filingDate = document.createElement('div');
+                        filingDate.className = 'additional-metric-item';
+                        filingDate.style.borderLeft = '3px solid #28a745';
+                        filingDate.innerHTML = `
+                            <div class="additional-metric-label">Latest Filing Date</div>
+                            <div class="additional-metric-value">${new Date(latestFiling.filedDate).toLocaleDateString()}</div>
+                        `;
+                        additionalMetrics.appendChild(filingDate);
+                    }
+                }
+            }
         }
 
         function formatNumber(value, format) {
@@ -3169,6 +3347,165 @@
                     return num.toString();
             }
         }
+
+        // SEC Filings Modal Functions
+        let currentSecFilingsSymbol = null;
+        
+        function openSecFilingsModal(symbol, companyName) {
+            currentSecFilingsSymbol = symbol;
+            
+            // Update modal title
+            document.getElementById('secFilingsTitle').textContent = `SEC Filings - ${symbol} ${companyName ? '(' + companyName + ')' : ''}`;
+            
+            // Show modal
+            document.getElementById('secFilingsModal').style.display = 'block';
+            
+            // Load SEC filing data
+            loadSecFilingData(symbol);
+        }
+        
+        function closeSecFilingsModal() {
+            document.getElementById('secFilingsModal').style.display = 'none';
+            currentSecFilingsSymbol = null;
+        }
+        
+        async function loadSecFilingData(symbol) {
+            const secFilingsLoading = document.getElementById('secFilingsLoading');
+            const secFilingsError = document.getElementById('secFilingsError');
+            const secFilingsData = document.getElementById('secFilingsData');
+            
+            // Show loading state
+            secFilingsLoading.style.display = 'block';
+            secFilingsError.style.display = 'none';
+            secFilingsData.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/financials/reported/${symbol}`, {
+                    headers: {
+                        'Authorization': authToken ? `Bearer ${authToken}` : '',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.data || data.count === 0) {
+                    throw new Error('No SEC filing data available for this symbol');
+                }
+                
+                // Hide loading, show data
+                secFilingsLoading.style.display = 'none';
+                secFilingsData.style.display = 'block';
+                
+                // Populate SEC filing data
+                populateSecFilingData(data);
+                
+            } catch (error) {
+                console.error('Error loading SEC filing data:', error);
+                
+                // Show error state
+                secFilingsLoading.style.display = 'none';
+                secFilingsError.style.display = 'block';
+                secFilingsError.textContent = `Failed to load SEC filing data: ${error.message}`;
+            }
+        }
+        
+        function populateSecFilingData(data) {
+            // Update filing summary
+            const latestFiling = data.data[0];
+            const latestFilingInfo = document.getElementById('latestFilingInfo');
+            
+            if (latestFiling) {
+                latestFilingInfo.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><strong>Form Type:</strong> ${latestFiling.form || '--'}</div>
+                        <div><strong>Filing Date:</strong> ${latestFiling.filedDate ? new Date(latestFiling.filedDate).toLocaleDateString() : '--'}</div>
+                        <div><strong>Period:</strong> ${latestFiling.year || '--'} Q${latestFiling.quarter || '--'}</div>
+                        <div><strong>Total Filings:</strong> ${data.count}</div>
+                    </div>
+                `;
+            }
+            
+            // Populate SEC filing metrics
+            const secFilingsMetrics = document.getElementById('secFilingsMetrics');
+            secFilingsMetrics.innerHTML = '';
+            
+            if (latestFiling && latestFiling.report) {
+                const report = latestFiling.report;
+                
+                // Helper function to find value by concept in financial data
+                const findValueByConcept = (dataArray, conceptKeywords) => {
+                    if (!dataArray || !Array.isArray(dataArray)) return null;
+                    
+                    for (const item of dataArray) {
+                        if (item.concept && item.value !== null && item.value !== undefined) {
+                            const concept = item.concept.toLowerCase();
+                            const label = (item.label || '').toLowerCase();
+                            
+                            // Check if any keyword matches the concept or label
+                            if (conceptKeywords.some(keyword => 
+                                concept.includes(keyword.toLowerCase()) || 
+                                label.includes(keyword.toLowerCase()))) {
+                                return { value: item.value, label: item.label };
+                            }
+                        }
+                    }
+                    return null;
+                };
+                
+                // Define key metrics to display from reported financials
+                const reportedMetrics = [
+                    { section: 'bs', concepts: ['assets'], label: 'Total Assets', format: 'currency' },
+                    { section: 'bs', concepts: ['liabilities'], label: 'Total Liabilities', format: 'currency' },
+                    { section: 'bs', concepts: ['equity', 'stockholdersequity'], label: 'Shareholders Equity', format: 'currency' },
+                    { section: 'ic', concepts: ['revenue', 'netsales'], label: 'Total Revenue', format: 'currency' },
+                    { section: 'ic', concepts: ['operatingincome'], label: 'Operating Income', format: 'currency' },
+                    { section: 'ic', concepts: ['netincome'], label: 'Net Income', format: 'currency' },
+                    { section: 'cf', concepts: ['operatingcashflow', 'netcashoperating'], label: 'Operating Cash Flow', format: 'currency' },
+                    { section: 'bs', concepts: ['cashandcashequivalents', 'cash'], label: 'Cash and Equivalents', format: 'currency' }
+                ];
+                
+                reportedMetrics.forEach(item => {
+                    const sectionData = report[item.section];
+                    const result = findValueByConcept(sectionData, item.concepts);
+                    
+                    if (result && result.value !== null && result.value !== undefined && !isNaN(result.value)) {
+                        const metricItem = document.createElement('div');
+                        metricItem.className = 'additional-metric-item';
+                        metricItem.style.borderLeft = '3px solid #6f42c1';
+                        metricItem.innerHTML = `
+                            <div class="additional-metric-label">${item.label}</div>
+                            <div class="additional-metric-value">${formatNumber(result.value, item.format)}</div>
+                        `;
+                        secFilingsMetrics.appendChild(metricItem);
+                    }
+                });
+                
+                // Add filing date
+                if (latestFiling.filedDate) {
+                    const filingDate = document.createElement('div');
+                    filingDate.className = 'additional-metric-item';
+                    filingDate.style.borderLeft = '3px solid #28a745';
+                    filingDate.innerHTML = `
+                        <div class="additional-metric-label">Latest Filing Date</div>
+                        <div class="additional-metric-value">${new Date(latestFiling.filedDate).toLocaleDateString()}</div>
+                    `;
+                    secFilingsMetrics.appendChild(filingDate);
+                }
+            }
+        }
+
+        // Close SEC modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const secModal = document.getElementById('secFilingsModal');
+            if (event.target === secModal) {
+                closeSecFilingsModal();
+            }
+        });
     </script>
 </body>
 </html>

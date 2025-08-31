@@ -381,6 +381,21 @@ public class FinnhubApiService {
     }
     
     /**
+     * Reported Financials data class for SEC filing data
+     */
+    public static class ReportedFinancials {
+        public final JsonNode data;
+        public final String symbol;
+        public final int count;
+        
+        public ReportedFinancials(JsonNode data, String symbol, int count) {
+            this.data = data;
+            this.symbol = symbol;
+            this.count = count;
+        }
+    }
+    
+    /**
      * Get basic financial metrics for a company
      */
     public BasicFinancials getBasicFinancials(String symbol) {
@@ -420,6 +435,50 @@ public class FinnhubApiService {
             log.error("Network error fetching basic financials for {}: {}", symbol, e.getMessage());
         } catch (Exception e) {
             log.error("Error fetching basic financials for {} from Finnhub: {}", symbol, e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get reported financial statements for a company
+     */
+    public ReportedFinancials getReportedFinancials(String symbol) {
+        try {
+            // Rate limiting
+            enforceRateLimit();
+            
+            String url = String.format("%s/stock/financials-reported?symbol=%s&token=%s", 
+                    baseUrl, symbol.toUpperCase(), apiToken);
+            
+            log.debug("Fetching reported financials for {} from Finnhub", symbol);
+            String response = restTemplate.getForObject(url, String.class);
+            
+            if (response != null) {
+                JsonNode jsonNode = objectMapper.readTree(response);
+                
+                // Check if the response contains valid data
+                if (jsonNode.has("data") && jsonNode.get("data").isArray()) {
+                    JsonNode data = jsonNode.get("data");
+                    int count = data.size();
+                    
+                    log.info("Retrieved {} reported financial statements for {}", count, symbol);
+                    return new ReportedFinancials(data, symbol, count);
+                } else {
+                    log.warn("Invalid reported financials response for symbol {}: {}", symbol, response);
+                }
+            }
+            
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 429) {
+                log.warn("Rate limit exceeded for reported financials. Symbol: {}", symbol);
+            } else {
+                log.error("HTTP error fetching reported financials for {}: {}", symbol, e.getMessage());
+            }
+        } catch (ResourceAccessException e) {
+            log.error("Network error fetching reported financials for {}: {}", symbol, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error fetching reported financials for {} from Finnhub: {}", symbol, e.getMessage());
         }
         
         return null;
